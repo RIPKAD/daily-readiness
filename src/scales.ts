@@ -3,11 +3,9 @@ import type { MetricKey, WorkoutQuality } from './types';
 export type ScaleOption = { value: number; label: string };
 
 /**
- * Sleep, stress, and mood use the TrainingPeaks wording, which matches the
- * requested lengths (7, 7, and 3). Soreness and overall feeling are 8 steps.
- * The spec file with the original wording was not in the project, so those two
- * lists are written out here and can be edited in this file.
- * Higher soreness and higher stress are worse. The score flips them.
+ * Kaden's scales. Stored values are the numbers. Higher soreness and higher
+ * stress are worse, and the score flips them. Sleep, mood, and overall feeling
+ * are better when the number is higher.
  */
 export const SLEEP_QUALITY: ScaleOption[] = [
   { value: 1, label: 'Horrible' },
@@ -21,22 +19,22 @@ export const SLEEP_QUALITY: ScaleOption[] = [
 
 export const SORENESS: ScaleOption[] = [
   { value: 1, label: 'None' },
-  { value: 2, label: 'Extremely low' },
-  { value: 3, label: 'Very low' },
+  { value: 2, label: 'Extremely Low' },
+  { value: 3, label: 'Very Low' },
   { value: 4, label: 'Low' },
-  { value: 5, label: 'Moderate' },
-  { value: 6, label: 'High' },
-  { value: 7, label: 'Very high' },
-  { value: 8, label: 'Extreme' },
+  { value: 5, label: 'Moderately Low' },
+  { value: 6, label: 'Moderate' },
+  { value: 7, label: 'Moderately High' },
+  { value: 8, label: 'High' },
 ];
 
 export const STRESS: ScaleOption[] = [
   { value: 1, label: 'None' },
-  { value: 2, label: 'Very low' },
+  { value: 2, label: 'Very Low' },
   { value: 3, label: 'Low' },
   { value: 4, label: 'Average' },
   { value: 5, label: 'High' },
-  { value: 6, label: 'Very high' },
+  { value: 6, label: 'Very High' },
   { value: 7, label: 'Extreme' },
 ];
 
@@ -48,13 +46,13 @@ export const MOOD: ScaleOption[] = [
 
 export const FEELING: ScaleOption[] = [
   { value: 1, label: 'Horrible' },
-  { value: 2, label: 'Very poor' },
+  { value: 2, label: 'Extremely Poor' },
   { value: 3, label: 'Poor' },
-  { value: 4, label: 'Below average' },
-  { value: 5, label: 'OK' },
-  { value: 6, label: 'Good' },
-  { value: 7, label: 'Very good' },
-  { value: 8, label: 'Excellent' },
+  { value: 4, label: 'Bad' },
+  { value: 5, label: 'Below Average' },
+  { value: 6, label: 'Above Average' },
+  { value: 7, label: 'Good' },
+  { value: 8, label: 'Superior' },
 ];
 
 export const WORKOUT_QUALITY: { value: WorkoutQuality; label: string }[] = [

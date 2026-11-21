@@ -10,7 +10,7 @@ import {
   suggestWeights,
   type MetricReading,
 } from './score';
-import { metricMeta } from './scales';
+import { FEELING, MOOD, SLEEP_QUALITY, SORENESS, STRESS, metricMeta } from './scales';
 import type { MetricKey, Settings } from './types';
 
 function settings(weights = defaultWeights()): Settings {
@@ -25,6 +25,57 @@ function series(key: MetricKey, dates: string[], values: number[], today: { date
 }
 
 describe('score math', () => {
+  it('keeps Kaden’s scale labels and the readiness direction', () => {
+    expect(SLEEP_QUALITY.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 Horrible',
+      '2 Poor',
+      '3 Bad',
+      '4 Average',
+      '5 Good',
+      '6 Better',
+      '7 Best',
+    ]);
+    expect(SORENESS.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 None',
+      '2 Extremely Low',
+      '3 Very Low',
+      '4 Low',
+      '5 Moderately Low',
+      '6 Moderate',
+      '7 Moderately High',
+      '8 High',
+    ]);
+    expect(STRESS.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 None',
+      '2 Very Low',
+      '3 Low',
+      '4 Average',
+      '5 High',
+      '6 Very High',
+      '7 Extreme',
+    ]);
+    expect(MOOD.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 Worse than normal',
+      '2 Normal',
+      '3 Better than normal',
+    ]);
+    expect(FEELING.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 Horrible',
+      '2 Extremely Poor',
+      '3 Poor',
+      '4 Bad',
+      '5 Below Average',
+      '6 Above Average',
+      '7 Good',
+      '8 Superior',
+    ]);
+    expect(metricMeta('sleepQuality').higherIsBetter).toBe(true);
+    expect(metricMeta('soreness').higherIsBetter).toBe(false);
+    expect(metricMeta('stress').higherIsBetter).toBe(false);
+    expect(metricMeta('mood').higherIsBetter).toBe(true);
+    expect(metricMeta('feeling').higherIsBetter).toBe(true);
+  });
+
   it('starts with rMSSD and overall feeling weighted highest', () => {
     const weights = defaultWeights();
     const highest = Math.max(...Object.values(weights));

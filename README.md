@@ -75,7 +75,7 @@ Hash routes (`#today`, `#workout`, `#history`, `#settings`) avoid needing a serv
 
 ## Decisions still open
 
-- The spec file with the original dropdown sentences was not in the project. Workout quality uses the requested labels: 1 Very weak, 3 Weak, 5 Normal, 7 Strong, 9 Very strong. Sleep, stress, and mood use the TrainingPeaks labels, which match the requested lengths (7, 7, and 3). Soreness and overall feeling are 8-step lists written in `src/scales.ts`. Change that file if the paper form uses different words. Stored values are the numbers, so a label edit does not rewrite history.
+- Dropdowns use Kaden's scales and store the numbers. Sleep quality is 1 Horrible through 7 Best. Soreness is 1 None through 8 High. Stress is 1 None through 7 Extreme. Mood is 1 Worse than normal through 3 Better than normal. Overall feeling is 1 Horrible through 8 Superior. Higher soreness and higher stress lower the score.
 - Benchmark tests are a free-form log (date, name, result, notes). The definitions are still TBD.
 - The weekly kJ target is optional and blank until it is set. The week is Monday–Sunday. The total is mechanical work from intervals.icu `icu_joules`, not calories.
 - Suggest-weights pairs a morning with workout quality logged for the same calendar date. Two sessions that day are averaged.
