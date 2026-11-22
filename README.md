@@ -55,7 +55,7 @@ For each metric with at least 7 values in the previous window (default 42 days, 
 
 Green is 65 and up, amber is 40–64.9, red is below 40. The bars under the score are each metric’s signed points. They add up to `score − 50` before the clamp.
 
-**Suggest weights** needs about 40 days that have both a check-in and a workout quality for that same date. It correlates each readiness-oriented metric with that quality and proposes weights. Nothing is applied until you press the button.
+**Suggest weights** needs about 40 days that have both a check-in and a main workout for that same date. The main workout is the one marked Main. Otherwise it is the session with the most kilojoules, then the longest moving time, then the most recently updated log. The correlation uses that session’s quality only. Nothing is applied until you press the button.
 
 ## Backup
 
@@ -78,5 +78,5 @@ Hash routes (`#today`, `#workout`, `#history`, `#settings`) avoid needing a serv
 - Dropdowns use Kaden's scales and store the numbers. Sleep quality is 1 Horrible through 7 Best. Soreness is 1 None through 8 High. Stress is 1 None through 7 Extreme. Mood is 1 Worse than normal through 3 Better than normal. Overall feeling is 1 Horrible through 8 Superior. Higher soreness and higher stress lower the score.
 - Benchmark tests are a free-form log (date, name, result, notes). The definitions are still TBD.
 - The weekly kJ target is optional and blank until it is set. The week is Monday–Sunday. The total is mechanical work from intervals.icu `icu_joules`, not calories.
-- Suggest-weights pairs a morning with workout quality logged for the same calendar date. Two sessions that day are averaged.
+- Suggest-weights pairs a morning with the main workout quality for that calendar date. The main workout is the one marked Main, otherwise the most kilojoules, then the longest moving time, then the most recently updated log.
 - Deleting a morning removes it from this phone only. It does not clear the intervals.icu wellness record.

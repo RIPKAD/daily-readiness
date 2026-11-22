@@ -265,6 +265,9 @@ function cleanWorkout(raw: unknown): WorkoutLog | null {
     activityName: typeof row.activityName === 'string' ? row.activityName : null,
     note: typeof row.note === 'string' ? row.note.slice(0, 2000) : '',
     updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : new Date().toISOString(),
+    kj: num(row.kj),
+    movingSeconds: num(row.movingSeconds),
+    ...(row.isMain === true ? { isMain: true as const } : {}),
   };
 }
 

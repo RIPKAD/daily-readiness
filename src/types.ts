@@ -46,6 +46,12 @@ export type WorkoutLog = {
   activityName: string | null;
   note: string;
   updatedAt: string;
+  /** Kilojoules from the linked intervals.icu activity. Missing on logs saved before this field existed. */
+  kj?: number | null;
+  /** Moving time in seconds from the linked activity. Missing on older logs. */
+  movingSeconds?: number | null;
+  /** When set, this log is the day's main workout ahead of a longer session. */
+  isMain?: boolean;
 };
 
 export type Benchmark = {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blankCheckIn } from './intervals-map';
 import { detectImport, exportBackup, exportCheckinsCsv, mergeHrvRows } from './exchange';
+import { mainWorkoutByDate } from './score';
 import { defaultSettings } from './storage';
 
 describe('backup exchange', () => {
@@ -49,5 +50,40 @@ describe('backup exchange', () => {
     expect(merged.checkins[0].restingHr).toBe(44);
     expect(merged.checkins[0].hrvRmssd).toBe(70);
     expect(merged.checkins[1].hrvSdnn).toBeNull();
+  });
+
+  it('loads old workout logs and keeps kilojoules when a newer log has them', () => {
+    const detected = detectImport(JSON.stringify({
+      kind: 'daily-readiness',
+      version: 1,
+      workouts: [
+        { id: 'old', date: '2026-11-21', quality: 3, note: 'row', updatedAt: '2026-11-21T08:00:00.000Z' },
+        { id: 'also-old', date: '2026-11-21', quality: 9, updatedAt: '2026-11-21T19:00:00.000Z' },
+        {
+          id: 'new',
+          date: '2026-11-22',
+          quality: 7,
+          kj: 840,
+          movingSeconds: 5400,
+          isMain: true,
+          activityId: '99',
+          activityName: 'Ride',
+        },
+      ],
+    }));
+    expect(detected.kind).toBe('json');
+    if (detected.kind !== 'json') return;
+    const old = detected.backup.workouts.find((workout) => workout.id === 'old');
+    const newerOld = detected.backup.workouts.find((workout) => workout.id === 'also-old');
+    const saved = detected.backup.workouts.find((workout) => workout.id === 'new');
+    expect(old?.quality).toBe(3);
+    expect(old?.kj).toBeNull();
+    expect(old?.movingSeconds).toBeNull();
+    expect(old?.isMain).toBeUndefined();
+    expect(newerOld?.kj).toBeNull();
+    expect(saved?.kj).toBe(840);
+    expect(saved?.movingSeconds).toBe(5400);
+    expect(saved?.isMain).toBe(true);
+    expect(mainWorkoutByDate(detected.backup.workouts).get('2026-11-21')?.id).toBe('also-old');
   });
 });

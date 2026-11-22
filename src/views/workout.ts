@@ -1,6 +1,7 @@
 import { formatLong, isIsoDate } from '../dates';
 import { fetchActivities, IntervalsError } from '../intervals';
 import type { ActivitySummary } from '../intervals-map';
+import { mainWorkoutByDate } from '../score';
 import { WORKOUT_QUALITY } from '../scales';
 import { state } from '../state';
 import { persistDatabase } from '../storage';
@@ -15,7 +16,7 @@ export function renderWorkout(main: HTMLElement): void {
   header.append(el('p', 'eyebrow', 'After the session'));
   header.append(el('h1', 'title', 'Workout quality'));
   main.append(header);
-  main.append(el('p', 'lede', 'How strong was the session? Link it to an intervals.icu activity if you want the history tied to that ride or run. The quality stays on this phone.'));
+  main.append(el('p', 'lede', 'How strong was the session? Link it to an intervals.icu activity if you want the history tied to that ride or run. The quality stays on this phone. Weight suggestions use the main workout of the day.'));
 
   const form = el('form', 'stack');
   const date = el('input');
@@ -33,7 +34,14 @@ export function renderWorkout(main: HTMLElement): void {
   const activityHint = el('p', 'hint', state.apiKey ? 'Load the day’s activities, then pick one. Leaving this blank is fine.' : 'Add an intervals key in Settings to attach an activity. You can still log the quality.');
   activityBox.append(activityHint);
   let chosen: ActivitySummary | null = saved?.activityId
-    ? { id: saved.activityId, name: saved.activityName ?? 'Activity', type: '', date: saved.date, movingSeconds: null, kj: null }
+    ? {
+      id: saved.activityId,
+      name: saved.activityName ?? 'Activity',
+      type: '',
+      date: saved.date,
+      movingSeconds: saved.movingSeconds ?? null,
+      kj: saved.kj ?? null,
+    }
     : null;
   const list = el('div', 'choice-list');
   activityBox.append(list);
@@ -48,6 +56,14 @@ export function renderWorkout(main: HTMLElement): void {
   activityField.append(el('span', 'field-label', 'intervals.icu activity'));
   activityField.append(activityBox);
   form.append(activityField);
+
+  const mainWorkout = el('input');
+  mainWorkout.type = 'checkbox';
+  mainWorkout.checked = saved?.isMain === true;
+  const mainRow = el('label', 'check-row');
+  mainRow.append(mainWorkout, el('span', '', 'Main workout of the day'));
+  form.append(mainRow);
+  form.append(el('p', 'hint', 'Tick this when a shorter session should count instead of the one with more kilojoules. Otherwise the highest kilojoule log is the main workout.'));
 
   const note = el('textarea');
   note.rows = 3;
@@ -80,19 +96,28 @@ export function renderWorkout(main: HTMLElement): void {
       activityName: chosen ? activityTitle(chosen) : null,
       note: note.value.trim(),
       updatedAt: new Date().toISOString(),
+      kj: chosen?.kj ?? null,
+      movingSeconds: chosen?.movingSeconds ?? null,
+      ...(mainWorkout.checked ? { isMain: true } : {}),
     });
   });
   main.append(form);
 
   const recent = [...state.workouts].sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)).slice(0, 20);
+  const mains = mainWorkoutByDate(state.workouts);
   main.append(el('h2', 'section-title', 'Recent'));
   if (!recent.length) {
-    main.append(el('p', 'lede', 'No workouts logged yet. The morning score can suggest weights once about 40 of these sit next to a check-in.'));
+    main.append(el('p', 'lede', 'No workouts logged yet. Weight suggestions can use these once about 40 days have a check-in and a main workout.'));
   }
   for (const workout of recent) {
     const row = el('article', 'log-row');
     const label = WORKOUT_QUALITY.find((item) => item.value === workout.quality)?.label ?? String(workout.quality);
-    row.append(el('p', 'log-title', `${formatLong(workout.date)} · ${workout.quality} ${label}`));
+    const title = el('p', 'log-title', `${formatLong(workout.date)} · ${workout.quality} ${label}`);
+    if (mains.get(workout.date)?.id === workout.id) {
+      title.append(document.createTextNode(' '));
+      title.append(el('span', 'tag', 'Main'));
+    }
+    row.append(title);
     if (workout.activityName) row.append(el('p', 'hint', workout.activityName));
     if (workout.note) row.append(el('p', 'hint', workout.note));
     const actions = el('div', 'row');
@@ -111,6 +136,14 @@ export function renderWorkout(main: HTMLElement): void {
 }
 
 async function commit(workout: WorkoutLog): Promise<void> {
+  if (workout.isMain) {
+    state.workouts = state.workouts.map((item) => {
+      if (item.id === workout.id || item.date !== workout.date || item.isMain !== true) return item;
+      const rest = { ...item };
+      delete rest.isMain;
+      return rest;
+    });
+  }
   const index = state.workouts.findIndex((item) => item.id === workout.id);
   if (index >= 0) state.workouts[index] = workout;
   else state.workouts.push(workout);

@@ -160,15 +160,11 @@ export function renderSettings(main: HTMLElement): void {
 
   const suggestBox = el('div', 'panel');
   suggestBox.append(el('h2', 'section-title', 'Suggest weights'));
-  suggestBox.append(el('p', 'lede', 'Once about 40 days have both a morning check-in and a workout quality, each metric is correlated with that day’s quality. Nothing changes until you apply the suggestion.'));
+  suggestBox.append(el('p', 'lede', 'Once about 40 days have both a morning check-in and a main workout, each metric is correlated with that day’s quality. A second session is left out. Nothing changes until you apply the suggestion.'));
   const suggestOut = el('div');
   suggestBox.append(button('Check correlations', 'secondary', () => {
     const current = readSettings(baseline, target, weightInputs) ?? state.settings;
-    const suggestion = suggestWeights(
-      state.checkins,
-      state.workouts.map((workout) => ({ date: workout.date, quality: workout.quality })),
-      current,
-    );
+    const suggestion = suggestWeights(state.checkins, state.workouts, current);
     paintSuggestion(suggestOut, suggestion, () => {
       const base = readSettings(baseline, target, weightInputs);
       if (!base) return;
@@ -246,7 +242,7 @@ export function renderSettings(main: HTMLElement): void {
 function paintSuggestion(out: HTMLElement, suggestion: WeightSuggestion, onApply: () => void): void {
   out.replaceChildren();
   if (!suggestion.ready) {
-    out.append(el('p', 'lede', `${suggestion.pairedDays} paired days so far. About ${suggestion.needed} are needed. A pair is a check-in and the workout quality logged for that same date. Two workouts on one date are averaged.`));
+    out.append(el('p', 'lede', `${suggestion.pairedDays} paired days so far. About ${suggestion.needed} are needed. A pair is a check-in and the main workout’s quality for that date. A second session that day is left out.`));
     return;
   }
   const table = el('table', 'sheet');

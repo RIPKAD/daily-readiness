@@ -4,11 +4,13 @@ import {
   applySuggestion,
   bandFor,
   defaultWeights,
+  mainWorkoutByDate,
   MIN_BASELINE_DAYS,
   sampleStd,
   scoreDay,
   suggestWeights,
   type MetricReading,
+  type WorkoutPair,
 } from './score';
 import { FEELING, MOOD, SLEEP_QUALITY, SORENESS, STRESS, metricMeta } from './scales';
 import type { MetricKey, Settings } from './types';
@@ -236,5 +238,73 @@ describe('score math', () => {
     const feeling = suggestion.rows.find((row) => row.key === 'feeling')!;
     expect(feeling.r).toBeLessThan(0);
     expect(feeling.proposed).toBe(0);
+  });
+
+  it('uses only the higher-kilojoule workout when a day has two sessions', () => {
+    const entries: MetricReading[] = [];
+    const workouts: WorkoutPair[] = [];
+    for (let i = 0; i < 40; i++) {
+      const date = addDays('2026-03-01', i);
+      const feeling = (i % 8) + 1;
+      entries.push({ date, feeling });
+      workouts.push({
+        date,
+        quality: 10 - feeling,
+        kj: 40,
+        movingSeconds: 600,
+        updatedAt: `${date}T18:00:00.000Z`,
+      });
+      workouts.push({
+        date,
+        quality: feeling,
+        kj: 900,
+        movingSeconds: 5400,
+        updatedAt: `${date}T07:00:00.000Z`,
+      });
+    }
+    const suggestion = suggestWeights(entries, workouts, settings());
+    const feeling = suggestion.rows.find((row) => row.key === 'feeling')!;
+    expect(suggestion.pairedDays).toBe(40);
+    expect(feeling.r).toBeGreaterThan(0.9);
+    expect(feeling.proposed).toBeGreaterThan(0);
+  });
+});
+
+describe('main workout of the day', () => {
+  it('picks the higher-kj log when two workouts share a date', () => {
+    const picked = mainWorkoutByDate([
+      { id: 'row', date: '2026-11-21', quality: 5, kj: 80, movingSeconds: 600, updatedAt: '2026-11-21T20:00:00.000Z' },
+      { id: 'ride', date: '2026-11-21', quality: 7, kj: 900, movingSeconds: 5400, updatedAt: '2026-11-21T07:00:00.000Z' },
+    ]);
+    expect(picked.get('2026-11-21')?.id).toBe('ride');
+  });
+
+  it('lets a manual main override a longer ride', () => {
+    const picked = mainWorkoutByDate([
+      { id: 'row', date: '2026-11-21', quality: 3, kj: 40, movingSeconds: 600, isMain: true, updatedAt: '2026-11-21T08:00:00.000Z' },
+      { id: 'ride', date: '2026-11-21', quality: 9, kj: 1200, movingSeconds: 9000, updatedAt: '2026-11-21T18:00:00.000Z' },
+    ]);
+    expect(picked.get('2026-11-21')?.id).toBe('row');
+  });
+
+  it('uses the longest moving time when kilojoules are missing', () => {
+    const picked = mainWorkoutByDate([
+      { id: 'short', date: '2026-11-21', quality: 5, kj: null, movingSeconds: 600, updatedAt: '2026-11-21T20:00:00.000Z' },
+      { id: 'long', date: '2026-11-21', quality: 7, movingSeconds: 5000, updatedAt: '2026-11-21T09:00:00.000Z' },
+    ]);
+    expect(picked.get('2026-11-21')?.id).toBe('long');
+
+    const kjBeatsTime = mainWorkoutByDate([
+      { id: 'spin', date: '2026-11-22', quality: 5, movingSeconds: 7200, updatedAt: '2026-11-22T12:00:00.000Z' },
+      { id: 'ride', date: '2026-11-22', quality: 7, kj: 120, movingSeconds: 1800, updatedAt: '2026-11-22T08:00:00.000Z' },
+    ]);
+    expect(kjBeatsTime.get('2026-11-22')?.id).toBe('ride');
+  });
+
+  it('uses the most recently updated log when an old-format entry has neither kilojoules nor moving time', () => {
+    const older = { id: 'old', date: '2026-11-21', quality: 5, updatedAt: '2026-11-21T08:00:00.000Z' };
+    const newer = { id: 'new', date: '2026-11-21', quality: 9, updatedAt: '2026-11-21T19:00:00.000Z' };
+    expect(mainWorkoutByDate([older, newer]).get('2026-11-21')?.id).toBe('new');
+    expect(mainWorkoutByDate([newer, older]).get('2026-11-21')?.id).toBe('new');
   });
 });

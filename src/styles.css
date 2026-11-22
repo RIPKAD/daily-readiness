@@ -191,6 +191,39 @@ input:focus, select:focus, textarea:focus {
 .row { display: flex; gap: 8px; align-items: center; }
 .row.wrap { flex-wrap: wrap; }
 
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.check-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 4px;
+  accent-color: var(--ink);
+  flex: none;
+}
+
+.log-title { margin: 0; font-weight: 600; }
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px 2px;
+  border-radius: 999px;
+  background: var(--green-bg);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
 .banner, .panel, .log-row {
   margin-top: 14px;
   padding: 14px;

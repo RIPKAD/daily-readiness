@@ -196,10 +196,67 @@ export type WeightSuggestion = {
   rows: SuggestionRow[];
 };
 
-export type WorkoutPair = { date: string; quality: number };
+export type WorkoutPair = {
+  date: string;
+  quality: number;
+  kj?: number | null;
+  movingSeconds?: number | null;
+  isMain?: boolean;
+  updatedAt?: string;
+};
+
+type MainWorkoutFields = {
+  date: string;
+  kj?: number | null;
+  movingSeconds?: number | null;
+  isMain?: boolean;
+  updatedAt?: string;
+};
 
 /**
- * Correlate each readiness-oriented metric with same-day workout quality.
+ * One log per date. A log marked main wins. Otherwise the highest kilojoule
+ * log wins, then the longest moving time, then the most recently updated log.
+ * Logs saved before kilojoules were stored still compare on the fields they have.
+ */
+export function mainWorkoutByDate<T extends MainWorkoutFields>(workouts: readonly T[]): Map<string, T> {
+  const grouped = new Map<string, T[]>();
+  for (const workout of workouts) {
+    const group = grouped.get(workout.date);
+    if (group) group.push(workout);
+    else grouped.set(workout.date, [workout]);
+  }
+  const picked = new Map<string, T>();
+  for (const [date, group] of grouped) {
+    const marked = group.filter((workout) => workout.isMain === true);
+    const pool = marked.length > 0 ? marked : group;
+    picked.set(date, [...pool].sort(compareMain)[0]);
+  }
+  return picked;
+}
+
+function compareMain(a: MainWorkoutFields, b: MainWorkoutFields): number {
+  const byKj = preferHigher(finiteOrMissing(a.kj), finiteOrMissing(b.kj));
+  if (byKj !== 0) return byKj;
+  const byMoving = preferHigher(finiteOrMissing(a.movingSeconds), finiteOrMissing(b.movingSeconds));
+  if (byMoving !== 0) return byMoving;
+  return (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '');
+}
+
+function finiteOrMissing(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Sort comparator: the higher present number comes first. A missing value loses to any number. */
+function preferHigher(a: number | null, b: number | null): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return b - a;
+}
+
+/**
+ * Correlate each readiness-oriented metric with the main workout's quality
+ * on the same date. A second session that day is left out.
  * Proposed weights are max(0, r), rescaled to the current weight total of the
  * metrics that received a proposal. This function does not write settings.
  */
@@ -208,12 +265,10 @@ export function suggestWeights(
   workouts: WorkoutPair[],
   settings: Pick<Settings, 'weights'>,
 ): WeightSuggestion {
-  const qualityByDate = new Map<string, number[]>();
-  for (const workout of workouts) {
+  const qualityByDate = new Map<string, number>();
+  for (const workout of mainWorkoutByDate(workouts).values()) {
     if (!Number.isFinite(workout.quality)) continue;
-    const list = qualityByDate.get(workout.date) ?? [];
-    list.push(workout.quality);
-    qualityByDate.set(workout.date, list);
+    qualityByDate.set(workout.date, workout.quality);
   }
   const pairedDates = entries
     .map((entry) => entry.date)
@@ -241,9 +296,8 @@ export function suggestWeights(
     const ys: number[] = [];
     for (const date of pairedDates) {
       const value = finiteOrNull(byDate.get(date)?.[row.key]);
-      if (value == null) continue;
-      const qualities = qualityByDate.get(date)!;
-      const quality = qualities.reduce((sum, item) => sum + item, 0) / qualities.length;
+      const quality = qualityByDate.get(date);
+      if (value == null || quality == null) continue;
       xs.push(meta.higherIsBetter ? value : -value);
       ys.push(quality);
     }
