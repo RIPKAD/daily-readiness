@@ -25,7 +25,7 @@ export type ActivitySummary = {
 
 /**
  * Fields whose scales match intervals.icu one-to-one.
- * Sleep, soreness, stress, mood, and feeling use different scales, so they are omitted.
+ * Sleep, soreness, fatigue, stress, mood, and feeling use different scales, so they are omitted.
  */
 export function wellnessPayload(checkin: Pick<CheckIn, 'restingHr' | 'hrvRmssd' | 'hrvSdnn' | 'weightLb'>): Record<string, number> {
   const body: Record<string, number> = {};
@@ -91,6 +91,7 @@ export function blankCheckIn(date: string, now = new Date().toISOString()): Chec
     weightLb: null,
     sleepQuality: null,
     soreness: null,
+    fatigue: null,
     stress: null,
     mood: null,
     feeling: null,

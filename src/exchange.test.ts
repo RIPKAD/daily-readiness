@@ -52,6 +52,40 @@ describe('backup exchange', () => {
     expect(merged.checkins[1].hrvSdnn).toBeNull();
   });
 
+  it('exports fatigue and still loads a check-in that has no fatigue field', () => {
+    const checkin = blankCheckIn('2026-11-21');
+    checkin.restingHr = 47;
+    checkin.fatigue = 4;
+    const csv = exportCheckinsCsv([checkin]);
+    expect(csv.split('\n')[0].split(',')).toContain('fatigue');
+    const fromCsv = detectImport(csv);
+    expect(fromCsv.kind).toBe('checkins');
+    if (fromCsv.kind !== 'checkins') return;
+    expect(fromCsv.checkins[0].fatigue).toBe(4);
+    expect(fromCsv.checkins[0].restingHr).toBe(47);
+
+    const oldJson = detectImport(JSON.stringify({
+      kind: 'daily-readiness',
+      version: 1,
+      checkins: [{ date: '2026-11-01', restingHr: 44, soreness: 2 }],
+      settings: { baselineDays: 42, weights: { hrvRmssd: 3 } },
+    }));
+    expect(oldJson.kind).toBe('json');
+    if (oldJson.kind !== 'json') return;
+    expect(oldJson.backup.checkins[0].restingHr).toBe(44);
+    expect(oldJson.backup.checkins[0].soreness).toBe(2);
+    expect(oldJson.backup.checkins[0].fatigue).toBeNull();
+    expect(oldJson.backup.settings?.weights.fatigue).toBe(1.5);
+    expect(oldJson.backup.settings?.weights.hrvRmssd).toBe(3);
+
+    const oldCsv = detectImport('date,resting_hr_bpm,soreness\n2026-11-02,46,3\n');
+    expect(oldCsv.kind).toBe('checkins');
+    if (oldCsv.kind !== 'checkins') return;
+    expect(oldCsv.checkins[0].restingHr).toBe(46);
+    expect(oldCsv.checkins[0].soreness).toBe(3);
+    expect(oldCsv.checkins[0].fatigue).toBeNull();
+  });
+
   it('loads old workout logs and keeps kilojoules when a newer log has them', () => {
     const detected = detectImport(JSON.stringify({
       kind: 'daily-readiness',

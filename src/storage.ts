@@ -89,6 +89,10 @@ export async function persistDatabase(data: Database): Promise<void> {
   }
 }
 
+function withFatigue(checkin: CheckIn): CheckIn {
+  return checkin.fatigue == null ? { ...checkin, fatigue: null } : checkin;
+}
+
 function emptyDb(): Database {
   return { checkins: [], workouts: [], benchmarks: [] };
 }
@@ -108,7 +112,7 @@ function readBackup(): Database {
     if (!raw) return emptyDb();
     const parsed = JSON.parse(raw) as Partial<Database>;
     return {
-      checkins: Array.isArray(parsed.checkins) ? parsed.checkins : [],
+      checkins: Array.isArray(parsed.checkins) ? parsed.checkins.map(withFatigue) : [],
       workouts: Array.isArray(parsed.workouts) ? parsed.workouts : [],
       benchmarks: Array.isArray(parsed.benchmarks) ? parsed.benchmarks : [],
     };
@@ -148,7 +152,7 @@ async function readIdb(): Promise<Database> {
       const workouts = tx.objectStore('workouts').getAll();
       const benchmarks = tx.objectStore('benchmarks').getAll();
       tx.oncomplete = () => resolve({
-        checkins: checkins.result as CheckIn[],
+        checkins: (checkins.result as CheckIn[]).map(withFatigue),
         workouts: workouts.result as WorkoutLog[],
         benchmarks: benchmarks.result as Benchmark[],
       });

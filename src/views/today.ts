@@ -80,15 +80,17 @@ export function renderToday(main: HTMLElement): void {
   weightField.append(weightHint);
   form.append(weightField);
 
-  const selects: Record<'sleepQuality' | 'soreness' | 'stress' | 'mood' | 'feeling', HTMLSelectElement> = {
+  const selects: Record<'sleepQuality' | 'soreness' | 'fatigue' | 'stress' | 'mood' | 'feeling', HTMLSelectElement> = {
     sleepQuality: scaleSelect('sleepQuality', current.sleepQuality),
     soreness: scaleSelect('soreness', current.soreness),
+    fatigue: scaleSelect('fatigue', current.fatigue),
     stress: scaleSelect('stress', current.stress),
     mood: scaleSelect('mood', current.mood),
     feeling: scaleSelect('feeling', current.feeling),
   };
   form.append(field('Sleep quality', selects.sleepQuality, 'Higher means better sleep.'));
   form.append(field('Soreness', selects.soreness, 'Higher means more sore. The score flips this.'));
+  form.append(field('Fatigue', selects.fatigue, 'Higher means more fatigued. The score flips this.'));
   form.append(field('Stress', selects.stress, 'Higher means more stress. The score flips this.'));
   form.append(field('Mood', selects.mood, 'Higher means a better mood.'));
   form.append(field('Overall feeling', selects.feeling, 'Higher means you feel better.'));
@@ -137,7 +139,7 @@ export function renderToday(main: HTMLElement): void {
   }
 
   wire(current, [resting, rmssd, sdnn], ['restingHr', 'hrvRmssd', 'hrvSdnn'], scorePanel, error, saveButton);
-  for (const key of ['sleepQuality', 'soreness', 'stress', 'mood', 'feeling'] as const) {
+  for (const key of ['sleepQuality', 'soreness', 'fatigue', 'stress', 'mood', 'feeling'] as const) {
     selects[key].addEventListener('change', () => {
       current[key] = readSelect(selects[key]);
       refreshValidity(current, error, saveButton);
@@ -266,7 +268,7 @@ function contributionRow(label: string, points: number | null, maxAbs: number, d
 }
 
 function formatStat(item: { key: MetricKey; mean: number }): string {
-  const digits = item.key === 'restingHr' || item.key === 'sleepQuality' || item.key === 'soreness' || item.key === 'stress' || item.key === 'mood' || item.key === 'feeling' ? 1 : 1;
+  const digits = item.key === 'restingHr' || item.key === 'sleepQuality' || item.key === 'soreness' || item.key === 'fatigue' || item.key === 'stress' || item.key === 'mood' || item.key === 'feeling' ? 1 : 1;
   return formatNumber(item.mean, digits);
 }
 
@@ -329,6 +331,7 @@ function syncInputs(current: CheckIn): void {
   setNumber(byHint('Weight'), current.weightLb);
   setSelect(byHint('Sleep quality'), current.sleepQuality);
   setSelect(byHint('Soreness'), current.soreness);
+  setSelect(byHint('Fatigue'), current.fatigue);
   setSelect(byHint('Stress'), current.stress);
   setSelect(byHint('Mood'), current.mood);
   setSelect(byHint('Overall feeling'), current.feeling);
@@ -401,7 +404,7 @@ async function save(current: CheckIn, error: HTMLElement, saveButton: HTMLButton
     try {
       const written = await putWellness(state.apiKey, current.date, current);
       current.intervals = written.length
-        ? { state: 'synced', message: `Saved on this phone. intervals.icu updated ${written.join(', ')}. Sleep, soreness, stress, mood, and feeling stay here because those scales differ.`, at: current.updatedAt }
+        ? { state: 'synced', message: `Saved on this phone. intervals.icu updated ${written.join(', ')}. Sleep, soreness, fatigue, stress, mood, and feeling stay here because those scales differ.`, at: current.updatedAt }
         : { state: 'local', message: 'Saved on this phone. Nothing objective was filled in, so intervals.icu was left alone.', at: current.updatedAt };
     } catch (err) {
       const message = err instanceof IntervalsError ? err.message : 'intervals.icu could not be updated.';

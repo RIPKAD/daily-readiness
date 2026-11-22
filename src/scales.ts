@@ -3,7 +3,7 @@ import type { MetricKey, WorkoutQuality } from './types';
 export type ScaleOption = { value: number; label: string };
 
 /**
- * Kaden's scales. Stored values are the numbers. Higher soreness and higher
+ * Kaden's scales. Stored values are the numbers. Higher soreness, fatigue, and
  * stress are worse, and the score flips them. Sleep, mood, and overall feeling
  * are better when the number is higher.
  */
@@ -26,6 +26,14 @@ export const SORENESS: ScaleOption[] = [
   { value: 6, label: 'Moderate' },
   { value: 7, label: 'Moderately High' },
   { value: 8, label: 'High' },
+];
+
+export const FATIGUE: ScaleOption[] = [
+  { value: 1, label: 'Very Low' },
+  { value: 2, label: 'Low' },
+  { value: 3, label: 'Average' },
+  { value: 4, label: 'High' },
+  { value: 5, label: 'Very High' },
 ];
 
 export const STRESS: ScaleOption[] = [
@@ -64,11 +72,12 @@ export const WORKOUT_QUALITY: { value: WorkoutQuality; label: string }[] = [
 ];
 
 export const SCALE_BY_METRIC: Record<
-  'sleepQuality' | 'soreness' | 'stress' | 'mood' | 'feeling',
+  'sleepQuality' | 'soreness' | 'fatigue' | 'stress' | 'mood' | 'feeling',
   ScaleOption[]
 > = {
   sleepQuality: SLEEP_QUALITY,
   soreness: SORENESS,
+  fatigue: FATIGUE,
   stress: STRESS,
   mood: MOOD,
   feeling: FEELING,
@@ -129,6 +138,14 @@ export const METRICS: MetricMeta[] = [
     higherIsBetter: false,
     defaultWeight: 1.5,
     hint: 'Higher means more sore. The score flips this.',
+  },
+  {
+    key: 'fatigue',
+    label: 'Fatigue',
+    unit: '',
+    higherIsBetter: false,
+    defaultWeight: 1.5,
+    hint: 'Higher means more fatigued. The score flips this.',
   },
   {
     key: 'stress',

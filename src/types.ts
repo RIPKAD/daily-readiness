@@ -4,6 +4,7 @@ export type MetricKey =
   | 'hrvSdnn'
   | 'sleepQuality'
   | 'soreness'
+  | 'fatigue'
   | 'stress'
   | 'mood'
   | 'feeling';
@@ -25,6 +26,7 @@ export type CheckIn = {
   weightLb: number | null;
   sleepQuality: number | null;
   soreness: number | null;
+  fatigue: number | null;
   stress: number | null;
   mood: number | null;
   feeling: number | null;
@@ -76,6 +78,7 @@ export const METRIC_KEYS: MetricKey[] = [
   'hrvSdnn',
   'sleepQuality',
   'soreness',
+  'fatigue',
   'stress',
   'mood',
   'feeling',

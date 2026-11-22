@@ -12,7 +12,7 @@ import {
   type MetricReading,
   type WorkoutPair,
 } from './score';
-import { FEELING, MOOD, SLEEP_QUALITY, SORENESS, STRESS, metricMeta } from './scales';
+import { FATIGUE, FEELING, MOOD, SLEEP_QUALITY, SORENESS, STRESS, metricMeta } from './scales';
 import type { MetricKey, Settings } from './types';
 
 function settings(weights = defaultWeights()): Settings {
@@ -47,6 +47,13 @@ describe('score math', () => {
       '7 Moderately High',
       '8 High',
     ]);
+    expect(FATIGUE.map((option) => `${option.value} ${option.label}`)).toEqual([
+      '1 Very Low',
+      '2 Low',
+      '3 Average',
+      '4 High',
+      '5 Very High',
+    ]);
     expect(STRESS.map((option) => `${option.value} ${option.label}`)).toEqual([
       '1 None',
       '2 Very Low',
@@ -73,9 +80,12 @@ describe('score math', () => {
     ]);
     expect(metricMeta('sleepQuality').higherIsBetter).toBe(true);
     expect(metricMeta('soreness').higherIsBetter).toBe(false);
+    expect(metricMeta('fatigue').higherIsBetter).toBe(false);
+    expect(metricMeta('fatigue').defaultWeight).toBe(metricMeta('soreness').defaultWeight);
     expect(metricMeta('stress').higherIsBetter).toBe(false);
     expect(metricMeta('mood').higherIsBetter).toBe(true);
     expect(metricMeta('feeling').higherIsBetter).toBe(true);
+    expect(defaultWeights().fatigue).toBe(1.5);
   });
 
   it('starts with rMSSD and overall feeling weighted highest', () => {
@@ -122,8 +132,59 @@ describe('score math', () => {
     );
     expect(hr.contributions[0].points).toBeLessThan(0);
     expect(metricMeta('soreness').higherIsBetter).toBe(false);
+    expect(metricMeta('fatigue').higherIsBetter).toBe(false);
     expect(metricMeta('stress').higherIsBetter).toBe(false);
     expect(metricMeta('hrvRmssd').higherIsBetter).toBe(true);
+  });
+
+  it('inverts fatigue so a higher value lowers the score', () => {
+    const dates = Array.from({ length: 7 }, (_, index) => addDays('2026-07-01', index));
+    const high = scoreDay(
+      series('fatigue', dates, [1, 2, 1, 2, 1, 2, 1], { date: '2026-07-08', value: 5 }),
+      '2026-07-08',
+      settings(),
+    );
+    expect(high.status).toBe('ready');
+    expect(high.contributions[0].key).toBe('fatigue');
+    expect(high.contributions[0].z).toBeLessThan(0);
+    expect(high.contributions[0].points).toBeLessThan(0);
+    expect(high.score).toBeLessThan(50);
+
+    const low = scoreDay(
+      series('fatigue', dates, [4, 5, 4, 5, 4, 5, 4], { date: '2026-07-08', value: 1 }),
+      '2026-07-08',
+      settings(),
+    );
+    expect(low.contributions[0].z).toBeGreaterThan(0);
+    expect(low.score).toBeGreaterThan(50);
+  });
+
+  it('scores the other metrics when fatigue is missing', () => {
+    const dates = Array.from({ length: 7 }, (_, index) => addDays('2026-08-01', index));
+    const entries = series('hrvRmssd', dates, [50, 52, 48, 51, 49, 50, 53], { date: '2026-08-08', value: 60 });
+    const result = scoreDay(entries, '2026-08-08', settings());
+    expect(result.status).toBe('ready');
+    expect(result.contributions.map((item) => item.key)).toEqual(['hrvRmssd']);
+    expect(result.score).toBeGreaterThan(50);
+
+    const explicit = entries.map((entry) => ({ ...entry, fatigue: null }));
+    expect(scoreDay(explicit, '2026-08-08', settings()).score).toBe(result.score);
+  });
+
+  it('suggests a fatigue weight from the inverted scale', () => {
+    const entries: MetricReading[] = [];
+    const workouts: WorkoutPair[] = [];
+    for (let i = 0; i < 40; i++) {
+      const date = addDays('2026-09-01', i);
+      const quality = (i % 5) + 1;
+      entries.push({ date, fatigue: 6 - quality });
+      workouts.push({ date, quality });
+    }
+    const suggestion = suggestWeights(entries, workouts, settings());
+    const fatigue = suggestion.rows.find((row) => row.key === 'fatigue')!;
+    expect(fatigue.pairs).toBe(40);
+    expect(fatigue.r).toBeGreaterThan(0.9);
+    expect(fatigue.proposed).toBeGreaterThan(0);
   });
 
   it('uses only the previous window and ignores the morning being scored', () => {

@@ -20,6 +20,7 @@ export function exampleLog(): { checkins: CheckIn[]; workouts: WorkoutLog[] } {
     checkin.hrvSdnn = Math.round(72 + 10 * hrvWave);
     checkin.sleepQuality = clamp(Math.round(4 + 2 * feelWave), 1, 7);
     checkin.soreness = clamp(Math.round(4 + 2 * soreWave), 1, 8);
+    checkin.fatigue = clamp(Math.round(3 + soreWave), 1, 5);
     checkin.stress = clamp(Math.round(4 + soreWave), 1, 7);
     checkin.mood = clamp(Math.round(2 + feelWave), 1, 3);
     checkin.feeling = clamp(Math.round(5 + 2 * feelWave), 1, 8);

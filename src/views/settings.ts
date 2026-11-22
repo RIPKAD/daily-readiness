@@ -114,7 +114,7 @@ export function renderSettings(main: HTMLElement): void {
   main.append(importBox);
 
   main.append(el('h2', 'section-title', 'Score'));
-  main.append(el('p', 'lede', 'Each metric with at least seven values in the previous window gets a z-score against your own baseline. Resting HR, soreness, and stress are flipped so a higher z means more ready. Score = 50 + 15 × the weighted mean z, held between 0 and 100.'));
+  main.append(el('p', 'lede', 'Each metric with at least seven values in the previous window gets a z-score against your own baseline. Resting HR, soreness, fatigue, and stress are flipped so a higher z means more ready. Score = 50 + 15 × the weighted mean z, held between 0 and 100.'));
   const baseline = el('input');
   baseline.type = 'number';
   baseline.min = '7';
@@ -137,7 +137,7 @@ export function renderSettings(main: HTMLElement): void {
     input.min = '0';
     input.step = '0.1';
     input.inputMode = 'decimal';
-    input.value = String(state.settings.weights[metric.key]);
+    input.value = String(state.settings.weights[metric.key] ?? metric.defaultWeight);
     weightInputs.set(metric.key, input);
     weightStack.append(field(`${metric.label} · ${metric.higherIsBetter ? 'higher is better' : 'higher is worse, score flips it'}`, input));
   }

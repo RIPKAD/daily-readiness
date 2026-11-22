@@ -109,7 +109,7 @@ function baselineValues(entries: MetricReading[], key: MetricKey, date: string, 
 
 /**
  * Score one morning against prior days only.
- * Positive z means more ready: low resting HR, low soreness, low stress, high HRV and feelings.
+ * Positive z means more ready: low resting HR, low soreness, low fatigue, low stress, high HRV and feelings.
  * score = clamp(50 + 15 × weighted mean z, 0, 100).
  * Each contribution's points are that metric's share of (score − 50) before clamping.
  */

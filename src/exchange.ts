@@ -28,6 +28,7 @@ const CHECKIN_HEADER = [
   'weight_lb',
   'sleep_quality',
   'soreness',
+  'fatigue',
   'stress',
   'mood',
   'feeling',
@@ -69,6 +70,7 @@ export function exportCheckinsCsv(checkins: CheckIn[]): string {
       cell(checkin.weightLb),
       cell(checkin.sleepQuality),
       cell(checkin.soreness),
+      cell(checkin.fatigue),
       cell(checkin.stress),
       cell(checkin.mood),
       cell(checkin.feeling),
@@ -210,6 +212,7 @@ function parseCheckinCsv(text: string): { checkins: CheckIn[]; warnings: string[
     checkin.weightLb = numAt(row, index, 'weight_lb');
     checkin.sleepQuality = scaleAt(row, index, 'sleep_quality', 'sleepQuality');
     checkin.soreness = scaleAt(row, index, 'soreness', 'soreness');
+    checkin.fatigue = scaleAt(row, index, 'fatigue', 'fatigue');
     checkin.stress = scaleAt(row, index, 'stress', 'stress');
     checkin.mood = scaleAt(row, index, 'mood', 'mood');
     checkin.feeling = scaleAt(row, index, 'feeling', 'feeling');
@@ -233,6 +236,7 @@ function cleanCheckin(raw: unknown): CheckIn | null {
   checkin.weightLb = num(row.weightLb);
   checkin.sleepQuality = scale(row.sleepQuality, 'sleepQuality');
   checkin.soreness = scale(row.soreness, 'soreness');
+  checkin.fatigue = scale(row.fatigue, 'fatigue');
   checkin.stress = scale(row.stress, 'stress');
   checkin.mood = scale(row.mood, 'mood');
   checkin.feeling = scale(row.feeling, 'feeling');

@@ -13,12 +13,15 @@ describe('intervals mapping', () => {
     checkin.weightLb = 220.462;
     checkin.sleepQuality = 7;
     checkin.soreness = 8;
+    checkin.fatigue = 5;
     checkin.stress = 6;
     checkin.mood = 3;
     checkin.feeling = 8;
     const body = wellnessPayload(checkin);
     expect(body).toEqual({ restingHR: 48, hrv: 60.13, hrvSDNN: 80, weight: 100 });
+    expect(Object.keys(body).sort()).toEqual(['hrv', 'hrvSDNN', 'restingHR', 'weight']);
     expect(body).not.toHaveProperty('soreness');
+    expect(body).not.toHaveProperty('fatigue');
     expect(body).not.toHaveProperty('stress');
     expect(body).not.toHaveProperty('mood');
     expect(body).not.toHaveProperty('sleepQuality');
@@ -36,6 +39,7 @@ describe('intervals mapping', () => {
       sleepSecs: 27000,
       sleepQuality: 1,
       soreness: 4,
+      fatigue: 3,
     });
     expect(prefill.restingHr).toBeNull();
     expect(prefill.hrvRmssd).toBeNull();
@@ -48,6 +52,7 @@ describe('intervals mapping', () => {
     expect(prefill.intervalsSleepLabel).toBe('Excellent');
     expect(prefill).not.toHaveProperty('sleepQuality');
     expect(prefill).not.toHaveProperty('soreness');
+    expect(prefill).not.toHaveProperty('fatigue');
   });
 
   it('fills blanks without replacing a value already on the phone', () => {

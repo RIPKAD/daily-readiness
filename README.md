@@ -29,7 +29,7 @@ What gets written with `PUT wellness/{date}`:
 - `hrvSDNN`
 - `weight`, converted from pounds with `1 kg = 2.20462 lb`
 
-Sleep quality, soreness, stress, mood, and overall feeling are **not** written. intervals.icu uses different scales (sleep and mood are 1–4 with 1 best; soreness, fatigue, and stress are 0–4). Kaden’s scales do not map onto those, so copying the numbers would mean the wrong thing. Those answers stay in the local log.
+Sleep quality, soreness, fatigue, stress, mood, and overall feeling are **not** written. intervals.icu uses different scales (sleep and mood are 1–4 with 1 best; soreness, fatigue, and stress are 0–4). Kaden’s scales do not map onto those, so copying the numbers would mean the wrong thing. Those answers stay in the local log.
 
 Workout quality is stored on the phone and can be linked to an activity id and name. It is not written onto the activity, because 1 / 3 / 5 / 7 / 9 is not an intervals.icu field.
 
@@ -48,7 +48,7 @@ Android exports have used `YYYY-DD-MM`. If any date has a middle number above 12
 For each metric with at least 7 values in the previous window (default 42 days, not including the morning being scored):
 
 1. z-score against that personal baseline, using the sample standard deviation.
-2. Flip the sign when lower is better: resting HR, soreness, stress.
+2. Flip the sign when lower is better: resting HR, soreness, fatigue, stress.
 3. Multiply by the weight. rMSSD and overall feeling start as the heaviest.
 4. Take the weighted mean of those z-scores.
 5. `score = clamp(50 + 15 × weighted mean z, 0, 100)`.
@@ -75,7 +75,7 @@ Hash routes (`#today`, `#workout`, `#history`, `#settings`) avoid needing a serv
 
 ## Decisions still open
 
-- Dropdowns use Kaden's scales and store the numbers. Sleep quality is 1 Horrible through 7 Best. Soreness is 1 None through 8 High. Stress is 1 None through 7 Extreme. Mood is 1 Worse than normal through 3 Better than normal. Overall feeling is 1 Horrible through 8 Superior. Higher soreness and higher stress lower the score.
+- Dropdowns use Kaden's scales and store the numbers. Sleep quality is 1 Horrible through 7 Best. Soreness is 1 None through 8 High. Fatigue is 1 Very Low through 5 Very High. Stress is 1 None through 7 Extreme. Mood is 1 Worse than normal through 3 Better than normal. Overall feeling is 1 Horrible through 8 Superior. Higher soreness, fatigue, and stress lower the score.
 - Benchmark tests are a free-form log (date, name, result, notes). The definitions are still TBD.
 - The weekly kJ target is optional and blank until it is set. The week is Monday–Sunday. The total is mechanical work from intervals.icu `icu_joules`, not calories.
 - Suggest-weights pairs a morning with the main workout quality for that calendar date. The main workout is the one marked Main, otherwise the most kilojoules, then the longest moving time, then the most recently updated log.
