@@ -16,5 +16,284 @@
     "protein": 6.3,
     "carbs": 0.4,
     "fat": 4.8
+  },
+  {
+    "id": "olive-oil",
+    "name": "Olive oil",
+    "serving": "1 tbsp",
+    "kcal": 126,
+    "protein": 0,
+    "carbs": 0,
+    "fat": 14
+  },
+  {
+    "id": "kokusai-calrose-sushi-rice",
+    "name": "Kokusai Calrose Medium Grain Premium Sushi Rice",
+    "serving": "0.5 cup dry",
+    "kcal": 320,
+    "protein": 6,
+    "carbs": 72,
+    "fat": 0
+  },
+  {
+    "id": "k-low-karb-blueberry-cinnamon-keto-nut-granola",
+    "name": "K Low Karb Blueberry Cinnamon Keto Nut Granola",
+    "serving": "0.33 cup",
+    "kcal": 160,
+    "protein": 4,
+    "carbs": 9,
+    "fat": 15
+  },
+  {
+    "id": "hamburger-soup",
+    "name": "Hamburger Soup",
+    "serving": "1 serving",
+    "kcal": 399,
+    "protein": 45,
+    "carbs": 9,
+    "fat": 19
+  },
+  {
+    "id": "kirkland-signature-organic-greek-yogurt-plain",
+    "name": "Kirkland Signature Organic Greek Yogurt, Plain",
+    "serving": "1.5 cup",
+    "kcal": 224,
+    "protein": 40,
+    "carbs": 16,
+    "fat": 0
+  },
+  {
+    "id": "eggs-boiled",
+    "name": "Eggs, boiled",
+    "serving": "2 medium",
+    "kcal": 126,
+    "protein": 11,
+    "carbs": 1,
+    "fat": 8
+  },
+  {
+    "id": "apple",
+    "name": "Apple",
+    "serving": "1 medium",
+    "kcal": 104,
+    "protein": 1,
+    "carbs": 28,
+    "fat": 0
+  },
+  {
+    "id": "dried-dates",
+    "name": "Dried dates",
+    "serving": "6 dates",
+    "kcal": 120,
+    "protein": 2,
+    "carbs": 30,
+    "fat": 0
+  },
+  {
+    "id": "barebells-chocolate-dough-protein-bar",
+    "name": "Barebells Chocolate Dough Protein Bar",
+    "serving": "1 bar",
+    "kcal": 200,
+    "protein": 20,
+    "carbs": 20,
+    "fat": 7
+  },
+  {
+    "id": "castello-havarti-cheese",
+    "name": "Castello Havarti Cheese",
+    "serving": "1 bar",
+    "kcal": 80,
+    "protein": 5,
+    "carbs": 0,
+    "fat": 7
+  },
+  {
+    "id": "kize-oatmeal-chocolate-chip-bar",
+    "name": "KiZE Oatmeal Chocolate Chip Bar",
+    "serving": "1 bar",
+    "kcal": 200,
+    "protein": 7,
+    "carbs": 20,
+    "fat": 10
+  },
+  {
+    "id": "chocolate-chip-cookie",
+    "name": "Chocolate Chip Cookie",
+    "serving": "1 medium (3\" diameter)",
+    "kcal": 148,
+    "protein": 2,
+    "carbs": 20,
+    "fat": 7
+  },
+  {
+    "id": "smoked-brisket",
+    "name": "Smoked beef brisket",
+    "serving": "4 oz",
+    "kcal": 176,
+    "protein": 24,
+    "carbs": 0,
+    "fat": 8
+  },
+  {
+    "id": "roast-beef-cooked",
+    "name": "Roast beef, cooked",
+    "serving": "6.75 ounce",
+    "kcal": 350,
+    "protein": 51,
+    "carbs": 0,
+    "fat": 16
+  },
+  {
+    "id": "sweet-potato",
+    "name": "Sweet potato",
+    "serving": "1 medium",
+    "kcal": 123,
+    "protein": 3,
+    "carbs": 27,
+    "fat": 1
+  },
+  {
+    "id": "trader-joes-ube-mochi-pancake",
+    "name": "Trader Joe's Ube Mochi Pancake",
+    "serving": "1 pancake",
+    "kcal": 155,
+    "protein": 4,
+    "carbs": 27,
+    "fat": 5
+  },
+  {
+    "id": "cake-cone",
+    "name": "Cake cone",
+    "serving": "1 cone",
+    "kcal": 17,
+    "protein": 0,
+    "carbs": 3,
+    "fat": 0
+  },
+  {
+    "id": "fried-egg",
+    "name": "Fried egg",
+    "serving": "1 large",
+    "kcal": 83,
+    "protein": 5.6,
+    "carbs": 0.4,
+    "fat": 6.4
+  },
+  {
+    "id": "gluten-free-nation-blueberry-muffin",
+    "name": "Gluten Free Nation Blueberry Muffin",
+    "serving": "1 muffin",
+    "kcal": 201,
+    "protein": 3,
+    "carbs": 31,
+    "fat": 12
+  },
+  {
+    "id": "great-value-sweet-potato",
+    "name": "Great Value Sweet Potato",
+    "serving": "1 cup",
+    "kcal": 106,
+    "protein": 3,
+    "carbs": 26,
+    "fat": 0
+  },
+  {
+    "id": "heb-beef-sausage",
+    "name": "HEB Beef Sausage",
+    "serving": "3.5 ounce",
+    "kcal": 298,
+    "protein": 16,
+    "carbs": 4,
+    "fat": 25
+  },
+  {
+    "id": "siete-blue-corn-tortilla-chips",
+    "name": "Siete Blue Corn Tortilla Chips",
+    "serving": "20 pieces",
+    "kcal": 280,
+    "protein": 4,
+    "carbs": 38,
+    "fat": 12
+  },
+  {
+    "id": "siete-tortilla-chips-sea-salt",
+    "name": "Siete Tortilla Chips, Sea Salt",
+    "serving": "14 chips",
+    "kcal": 130,
+    "protein": 1,
+    "carbs": 20,
+    "fat": 7
+  },
+  {
+    "id": "vanilla-ice-cream",
+    "name": "Vanilla ice cream",
+    "serving": "1 cup",
+    "kcal": 279,
+    "protein": 5,
+    "carbs": 32,
+    "fat": 15
+  },
+  {
+    "id": "cheese-brie",
+    "name": "Brie cheese",
+    "serving": "2 cubic inch",
+    "kcal": 114,
+    "protein": 7,
+    "carbs": 0,
+    "fat": 9
+  },
+  {
+    "id": "hellmans-mayonnaise",
+    "name": "Hellman's Mayonnaise",
+    "serving": "1 tbsp",
+    "kcal": 90,
+    "protein": 0,
+    "carbs": 0,
+    "fat": 10
+  },
+  {
+    "id": "mashed-potatoes",
+    "name": "Mashed potatoes",
+    "serving": "1 cup",
+    "kcal": 285,
+    "protein": 5,
+    "carbs": 44,
+    "fat": 10
+  },
+  {
+    "id": "rice-krispies-treats-original",
+    "name": "Rice Krispies Treats, Original",
+    "serving": "1 bar",
+    "kcal": 90,
+    "protein": 0.5,
+    "carbs": 17,
+    "fat": 2
+  },
+  {
+    "id": "salisbury-steak",
+    "name": "Salisbury Steak",
+    "serving": "1 serving",
+    "kcal": 296,
+    "protein": 24,
+    "carbs": 13,
+    "fat": 16
+  },
+  {
+    "id": "grapefruit",
+    "name": "Grapefruit",
+    "serving": "1 fruit",
+    "kcal": 129,
+    "protein": 2,
+    "carbs": 33,
+    "fat": 0
+  },
+  {
+    "id": "yellowfin-tuna-sushi-grade",
+    "name": "Yellowfin tuna, sushi grade",
+    "serving": "5 ounce",
+    "kcal": 155,
+    "protein": 34.6,
+    "carbs": 0,
+    "fat": 0.7
   }
 ]

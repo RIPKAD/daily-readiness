@@ -127,26 +127,32 @@ describe('food catalog merge', () => {
 
   it('matches the seeded foods.json schema', () => {
     const foods = parseRepoFoods(catalog);
-    expect(foods).toEqual([
-      {
-        id: 'banana-medium',
-        name: 'Banana, medium',
-        serving: '1 medium (118 g)',
-        kcal: 105,
-        protein: 1.3,
-        carbs: 27,
-        fat: 0.4,
-      },
-      {
-        id: 'egg-large',
-        name: 'Egg, large',
-        serving: '1 large (50 g)',
-        kcal: 72,
-        protein: 6.3,
-        carbs: 0.4,
-        fat: 4.8,
-      },
-    ]);
+    expect(foods).toHaveLength(33);
+    expect(foods).toHaveLength(catalog.length);
+    expect(new Set(foods.map((food) => food.id)).size).toBe(foods.length);
+    expect(foods.find((food) => food.id === 'banana-medium')).toEqual({
+      id: 'banana-medium',
+      name: 'Banana, medium',
+      serving: '1 medium (118 g)',
+      kcal: 105,
+      protein: 1.3,
+      carbs: 27,
+      fat: 0.4,
+    });
+    expect(foods.find((food) => food.id === 'egg-large')).toEqual({
+      id: 'egg-large',
+      name: 'Egg, large',
+      serving: '1 large (50 g)',
+      kcal: 72,
+      protein: 6.3,
+      carbs: 0.4,
+      fat: 4.8,
+    });
+    expect(foods.find((food) => food.id === 'olive-oil')).toMatchObject({ kcal: 126, fat: 14, protein: 0, carbs: 0 });
+    expect(foods.find((food) => food.id === 'yellowfin-tuna-sushi-grade')).toMatchObject({ protein: 34.6, fat: 0.7 });
+    for (const food of foods) {
+      expect(Object.keys(food).sort()).toEqual(['carbs', 'fat', 'id', 'kcal', 'name', 'protein', 'serving']);
+    }
   });
 
   it('ranks recently and frequently used foods ahead of unused ones', () => {
