@@ -4,7 +4,8 @@ import { blankCheckIn } from './intervals-map';
 import { DEFAULT_BASELINE_DAYS, defaultWeights } from './score';
 import { SCALE_BY_METRIC, WORKOUT_QUALITY } from './scales';
 import { cleanFood, cleanFoodEntry, cleanFoodTarget } from './food';
-import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, MetricKey, Settings, WorkoutLog, WorkoutQuality } from './types';
+import { cleanStrengthSession, cleanStrengthTemplate } from './strength';
+import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, MetricKey, Settings, StrengthSession, StrengthTemplate, WorkoutLog, WorkoutQuality } from './types';
 import { METRIC_KEYS } from './types';
 
 export type Backup = {
@@ -15,6 +16,8 @@ export type Backup = {
   foods: Food[];
   foodEntries: FoodEntry[];
   foodTargets: FoodTarget[];
+  strengthSessions: StrengthSession[];
+  strengthTemplates: StrengthTemplate[];
   warnings: string[];
 };
 
@@ -50,6 +53,8 @@ export function exportBackup(input: {
   foods?: Food[];
   foodEntries?: FoodEntry[];
   foodTargets?: FoodTarget[];
+  strengthSessions?: StrengthSession[];
+  strengthTemplates?: StrengthTemplate[];
 }, now = new Date().toISOString()): string {
   return JSON.stringify({
     kind: 'daily-readiness',
@@ -66,6 +71,8 @@ export function exportBackup(input: {
     foods: input.foods ?? [],
     foodEntries: input.foodEntries ?? [],
     foodTargets: input.foodTargets ?? [],
+    strengthSessions: input.strengthSessions ?? [],
+    strengthTemplates: input.strengthTemplates ?? [],
   }, null, 2);
 }
 
@@ -182,6 +189,8 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
   const foods = Array.isArray(record.foods) ? record.foods.flatMap((row) => cleanFood(row) ?? []) : [];
   const foodEntries = Array.isArray(record.foodEntries) ? record.foodEntries.flatMap((row) => cleanFoodEntry(row) ?? []) : [];
   const foodTargets = Array.isArray(record.foodTargets) ? record.foodTargets.flatMap((row) => cleanFoodTarget(row) ?? []) : [];
+  const strengthSessions = Array.isArray(record.strengthSessions) ? record.strengthSessions.flatMap((row) => cleanStrengthSession(row) ?? []) : [];
+  const strengthTemplates = Array.isArray(record.strengthTemplates) ? record.strengthTemplates.flatMap((row) => cleanStrengthTemplate(row) ?? []) : [];
   return {
     ok: true,
     backup: {
@@ -192,6 +201,8 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
       foods,
       foodEntries,
       foodTargets,
+      strengthSessions,
+      strengthTemplates,
       warnings,
     },
   };
@@ -233,6 +244,8 @@ export function mergeBackup(current: {
   foods?: Food[];
   foodEntries?: FoodEntry[];
   foodTargets?: FoodTarget[];
+  strengthSessions?: StrengthSession[];
+  strengthTemplates?: StrengthTemplate[];
 }, backup: Backup): {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
@@ -240,6 +253,8 @@ export function mergeBackup(current: {
   foods: Food[];
   foodEntries: FoodEntry[];
   foodTargets: FoodTarget[];
+  strengthSessions: StrengthSession[];
+  strengthTemplates: StrengthTemplate[];
 } {
   const checkins = new Map(current.checkins.map((row) => [row.date, row]));
   for (const row of backup.checkins) checkins.set(row.date, row);
@@ -253,6 +268,10 @@ export function mergeBackup(current: {
   for (const row of backup.foodEntries) foodEntries.set(row.id, row);
   const foodTargets = new Map((current.foodTargets ?? []).map((row) => [row.date, row]));
   for (const row of backup.foodTargets) foodTargets.set(row.date, row);
+  const strengthSessions = new Map((current.strengthSessions ?? []).map((row) => [row.id, row]));
+  for (const row of backup.strengthSessions) strengthSessions.set(row.id, row);
+  const strengthTemplates = new Map((current.strengthTemplates ?? []).map((row) => [row.kind, row]));
+  for (const row of backup.strengthTemplates) strengthTemplates.set(row.kind, row);
   return {
     checkins: [...checkins.values()].sort((a, b) => a.date.localeCompare(b.date)),
     workouts: [...workouts.values()].sort((a, b) => a.date.localeCompare(b.date)),
@@ -260,6 +279,8 @@ export function mergeBackup(current: {
     foods: [...foods.values()].sort((a, b) => a.name.localeCompare(b.name)),
     foodEntries: [...foodEntries.values()].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)),
     foodTargets: [...foodTargets.values()].sort((a, b) => a.date.localeCompare(b.date)),
+    strengthSessions: [...strengthSessions.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+    strengthTemplates: [...strengthTemplates.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
   };
 }
 

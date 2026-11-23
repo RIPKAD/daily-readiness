@@ -71,7 +71,11 @@ The expected URL is [https://ripkad.github.io/daily-readiness/](https://ripkad.g
 2. In the repo, open Settings → Pages → Build and deployment, and choose **GitHub Actions** (not “Deploy from a branch”).
 3. The workflow in `.github/workflows/pages.yml` runs the tests, builds `dist/`, and deploys it. The site root is the project path `/daily-readiness/`. Built asset paths are relative (`./assets/...`), so the same `dist/` also works if you open it from a local preview.
 
-Hash routes (`#food`, `#today`, `#workout`, `#history`, `#settings`) avoid needing a server rewrite. Opening the site with no hash lands on Food.
+Hash routes (`#food`, `#today`, `#strength`, `#workout`, `#history`, `#settings`) avoid needing a server rewrite. Opening the site with no hash lands on Food. The interface is dark gray.
+
+## Strength
+
+Lower and Upper start from the last session of that type, or from an editable template. Warm-up sets stay collapsed. Checking every working set at the prescribed reps for two sessions in a row offers +5 lb. A session stores `duration minutes × 4.5` as estimated kcal. Lifts show on History as `Lift: Lower` or `Lift: Upper` and are not the main workout for the readiness score. See `SPEC.md`.
 
 ## Food
 

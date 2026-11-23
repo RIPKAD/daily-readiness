@@ -3,6 +3,7 @@ import { addDays, formatLong, formatShort, todayIso } from '../dates';
 import { scoreDay } from '../score';
 import { METRICS } from '../scales';
 import { state } from '../state';
+import { liftMarker } from '../strength';
 import { persistDatabase } from '../storage';
 import type { Benchmark, MetricKey } from '../types';
 import { button, el, field, showToast, uid } from '../ui';
@@ -18,7 +19,7 @@ export function renderHistory(main: HTMLElement): void {
   header.append(el('h1', 'title', 'History'));
   main.append(header);
 
-  if (!state.checkins.length && !state.workouts.length) {
+  if (!state.checkins.length && !state.workouts.length && !state.strengthSessions.length) {
     main.append(el('p', 'lede', 'Mornings you save will show up here as a score line and the raw metrics.'));
     if (!state.preview) {
       main.append(button('Preview with example data', 'secondary', () => {
@@ -66,14 +67,23 @@ export function renderHistory(main: HTMLElement): void {
     main.append(el('p', 'hint', `${first.label} to ${latest.label} · latest ${latest.value}`));
   }
 
-  const recent = [...state.checkins].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
-  if (recent.length) {
+  const recentDates = [...new Set([
+    ...state.checkins.map((checkin) => checkin.date),
+    ...state.strengthSessions.map((session) => session.date),
+  ])].sort((a, b) => b.localeCompare(a)).slice(0, 14);
+  if (recentDates.length) {
     main.append(el('h2', 'section-title', 'Recent mornings'));
-    for (const checkin of recent) {
-      const result = scoreDay(state.checkins, checkin.date, state.settings);
-      const score = result.score == null ? 'Building baseline' : result.score.toFixed(1);
-      const row = button(`${formatLong(checkin.date)} · ${score}`, 'log-link', () => {
-        location.hash = `#today/${checkin.date}`;
+    for (const date of recentDates) {
+      const checkin = state.checkins.find((item) => item.date === date);
+      const marker = liftMarker(state.strengthSessions, date);
+      const score = checkin
+        ? (scoreDay(state.checkins, date, state.settings).score == null
+          ? 'Building baseline'
+          : scoreDay(state.checkins, date, state.settings).score!.toFixed(1))
+        : '';
+      const label = [formatLong(date), score, marker].filter(Boolean).join(' · ');
+      const row = button(label, 'log-link', () => {
+        location.hash = checkin ? `#today/${date}` : `#strength/${date}`;
       });
       main.append(row);
     }

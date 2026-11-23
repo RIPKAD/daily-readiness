@@ -1,9 +1,10 @@
 import { cleanSettings } from './exchange';
 import { DEFAULT_BASELINE_DAYS, defaultWeights } from './score';
-import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, Settings, WorkoutLog } from './types';
+import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, Settings, StrengthSession, StrengthTemplate, WorkoutLog } from './types';
 
 const DB_NAME = 'daily-readiness';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
+const STORES = ['checkins', 'workouts', 'benchmarks', 'foods', 'foodEntries', 'foodTargets', 'strengthSessions', 'strengthTemplates'] as const;
 const BACKUP_KEY = 'dr.backup.v1';
 const SETTINGS_KEY = 'dr.settings.v1';
 const API_KEY = 'dr.intervalsApiKey';
@@ -15,6 +16,8 @@ export type Database = {
   foods: Food[];
   foodEntries: FoodEntry[];
   foodTargets: FoodTarget[];
+  strengthSessions: StrengthSession[];
+  strengthTemplates: StrengthTemplate[];
 };
 
 let memory: Database = emptyMemory();
@@ -92,6 +95,8 @@ export async function persistDatabase(data: {
   foods?: Food[];
   foodEntries?: FoodEntry[];
   foodTargets?: FoodTarget[];
+  strengthSessions?: StrengthSession[];
+  strengthTemplates?: StrengthTemplate[];
 }): Promise<void> {
   const next: Database = {
     checkins: data.checkins,
@@ -100,6 +105,8 @@ export async function persistDatabase(data: {
     foods: data.foods ?? memory.foods,
     foodEntries: data.foodEntries ?? memory.foodEntries,
     foodTargets: data.foodTargets ?? memory.foodTargets,
+    strengthSessions: data.strengthSessions ?? memory.strengthSessions,
+    strengthTemplates: data.strengthTemplates ?? memory.strengthTemplates,
   };
   memory = next;
   writeBackup(next);
@@ -116,7 +123,7 @@ function remember(data: Database): Database {
 }
 
 function emptyMemory(): Database {
-  return { checkins: [], workouts: [], benchmarks: [], foods: [], foodEntries: [], foodTargets: [] };
+  return { checkins: [], workouts: [], benchmarks: [], foods: [], foodEntries: [], foodTargets: [], strengthSessions: [], strengthTemplates: [] };
 }
 
 function withFatigue(checkin: CheckIn): CheckIn {
@@ -135,6 +142,8 @@ function stamp(data: Database): string {
     ...data.foods.map((row) => row.updatedAt),
     ...data.foodEntries.map((row) => row.updatedAt),
     ...data.foodTargets.map((row) => row.updatedAt),
+    ...data.strengthSessions.map((row) => row.updatedAt),
+    ...data.strengthTemplates.map((row) => row.updatedAt),
   ].filter(Boolean);
   return times.sort().at(-1) ?? '';
 }
@@ -151,6 +160,8 @@ function readBackup(): Database {
       foods: Array.isArray(parsed.foods) ? parsed.foods : [],
       foodEntries: Array.isArray(parsed.foodEntries) ? parsed.foodEntries : [],
       foodTargets: Array.isArray(parsed.foodTargets) ? parsed.foodTargets : [],
+      strengthSessions: Array.isArray(parsed.strengthSessions) ? parsed.strengthSessions : [],
+      strengthTemplates: Array.isArray(parsed.strengthTemplates) ? parsed.strengthTemplates : [],
     };
   } catch {
     return emptyDb();
@@ -176,6 +187,8 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('foods')) db.createObjectStore('foods', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('foodEntries')) db.createObjectStore('foodEntries', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('foodTargets')) db.createObjectStore('foodTargets', { keyPath: 'date' });
+      if (!db.objectStoreNames.contains('strengthSessions')) db.createObjectStore('strengthSessions', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('strengthTemplates')) db.createObjectStore('strengthTemplates', { keyPath: 'kind' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('IndexedDB failed to open'));
@@ -186,13 +199,15 @@ async function readIdb(): Promise<Database> {
   const db = await openDb();
   try {
     return await new Promise((resolve, reject) => {
-      const tx = db.transaction(['checkins', 'workouts', 'benchmarks', 'foods', 'foodEntries', 'foodTargets'], 'readonly');
+      const tx = db.transaction([...STORES], 'readonly');
       const checkins = tx.objectStore('checkins').getAll();
       const workouts = tx.objectStore('workouts').getAll();
       const benchmarks = tx.objectStore('benchmarks').getAll();
       const foods = tx.objectStore('foods').getAll();
       const foodEntries = tx.objectStore('foodEntries').getAll();
       const foodTargets = tx.objectStore('foodTargets').getAll();
+      const strengthSessions = tx.objectStore('strengthSessions').getAll();
+      const strengthTemplates = tx.objectStore('strengthTemplates').getAll();
       tx.oncomplete = () => resolve({
         checkins: (checkins.result as CheckIn[]).map(withFatigue),
         workouts: workouts.result as WorkoutLog[],
@@ -200,6 +215,8 @@ async function readIdb(): Promise<Database> {
         foods: foods.result as Food[],
         foodEntries: foodEntries.result as FoodEntry[],
         foodTargets: foodTargets.result as FoodTarget[],
+        strengthSessions: strengthSessions.result as StrengthSession[],
+        strengthTemplates: strengthTemplates.result as StrengthTemplate[],
       });
       tx.onerror = () => reject(tx.error);
     });
@@ -212,19 +229,16 @@ async function writeIdb(data: Database): Promise<void> {
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(['checkins', 'workouts', 'benchmarks', 'foods', 'foodEntries', 'foodTargets'], 'readwrite');
-      tx.objectStore('checkins').clear();
-      tx.objectStore('workouts').clear();
-      tx.objectStore('benchmarks').clear();
-      tx.objectStore('foods').clear();
-      tx.objectStore('foodEntries').clear();
-      tx.objectStore('foodTargets').clear();
+      const tx = db.transaction([...STORES], 'readwrite');
+      for (const name of STORES) tx.objectStore(name).clear();
       for (const row of data.checkins) tx.objectStore('checkins').put(row);
       for (const row of data.workouts) tx.objectStore('workouts').put(row);
       for (const row of data.benchmarks) tx.objectStore('benchmarks').put(row);
       for (const row of data.foods) tx.objectStore('foods').put(row);
       for (const row of data.foodEntries) tx.objectStore('foodEntries').put(row);
       for (const row of data.foodTargets) tx.objectStore('foodTargets').put(row);
+      for (const row of data.strengthSessions) tx.objectStore('strengthSessions').put(row);
+      for (const row of data.strengthTemplates) tx.objectStore('strengthTemplates').put(row);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

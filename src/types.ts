@@ -103,6 +103,44 @@ export type FoodTarget = {
   updatedAt: string;
 };
 
+export type StrengthKind = 'lower' | 'upper';
+
+export type StrengthSet = {
+  id: string;
+  warmup: boolean;
+  weightLb: number;
+  reps: number;
+  /** Reps the set was planned at. Stepper changes `reps` without moving this. */
+  prescribedReps: number;
+  completed: boolean;
+  missed: boolean;
+};
+
+export type StrengthExercise = {
+  id: string;
+  name: string;
+  sets: StrengthSet[];
+};
+
+export type StrengthTemplate = {
+  kind: StrengthKind;
+  exercises: StrengthExercise[];
+  updatedAt: string;
+};
+
+export type StrengthSession = {
+  id: string;
+  date: string;
+  kind: StrengthKind;
+  exercises: StrengthExercise[];
+  rpe: number | null;
+  durationMin: number;
+  notes: string;
+  /** durationMin × 4.5. Not a workout-log entry and not sent to intervals.icu. */
+  estKcal: number;
+  updatedAt: string;
+};
+
 export type Benchmark = {
   id: string;
   date: string;

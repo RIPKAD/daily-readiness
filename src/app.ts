@@ -1,15 +1,17 @@
 import { isIsoDate, todayIso } from './dates';
 import { fetchRepoFoods, mergeFoods, sameFoodList } from './food';
 import { state, type Route } from './state';
+import { templatesOrSeed } from './strength';
 import { loadApiKey, loadDatabase, loadSettings, persistDatabase } from './storage';
 import { el } from './ui';
 import { renderFood } from './views/food';
 import { renderHistory } from './views/history';
 import { renderSettings } from './views/settings';
+import { renderStrength } from './views/strength';
 import { renderToday } from './views/today';
 import { renderWorkout } from './views/workout';
 
-const ROUTES: Route[] = ['today', 'food', 'workout', 'history', 'settings'];
+const ROUTES: Route[] = ['today', 'food', 'strength', 'workout', 'history', 'settings'];
 
 export async function boot(): Promise<void> {
   document.addEventListener('dr-render', () => render());
@@ -25,6 +27,8 @@ export async function boot(): Promise<void> {
     state.foods = data.foods;
     state.foodEntries = data.foodEntries;
     state.foodTargets = data.foodTargets;
+    state.strengthSessions = data.strengthSessions;
+    state.strengthTemplates = templatesOrSeed(data.strengthTemplates);
     state.settings = loadSettings();
     state.apiKey = loadApiKey();
     try {
@@ -32,18 +36,12 @@ export async function boot(): Promise<void> {
       const merged = mergeFoods(state.foods, repo, new Date().toISOString());
       if (!sameFoodList(state.foods, merged)) {
         state.foods = merged;
-        await persistDatabase({
-          checkins: state.checkins,
-          workouts: state.workouts,
-          benchmarks: state.benchmarks,
-          foods: state.foods,
-          foodEntries: state.foodEntries,
-          foodTargets: state.foodTargets,
-        });
+        await persistAll();
       }
     } catch {
       state.foodCatalogError = 'The shared food list did not load. Foods saved on this phone are still here.';
     }
+    if (data.strengthTemplates.length !== state.strengthTemplates.length) await persistAll();
   } catch (error) {
     state.loadError = error instanceof Error ? error.message : 'The log on this phone could not be opened.';
   }
@@ -58,7 +56,20 @@ function readRoute(): void {
   const [route, date] = raw.split('/');
   state.route = ROUTES.includes(route as Route) ? (route as Route) : 'today';
   if (date && isIsoDate(date)) state.date = date;
-  else if (state.route === 'today' || state.route === 'food' || state.route === 'workout') state.date = todayIso();
+  else if (state.route === 'today' || state.route === 'food' || state.route === 'strength' || state.route === 'workout') state.date = todayIso();
+}
+
+function persistAll(): Promise<void> {
+  return persistDatabase({
+    checkins: state.checkins,
+    workouts: state.workouts,
+    benchmarks: state.benchmarks,
+    foods: state.foods,
+    foodEntries: state.foodEntries,
+    foodTargets: state.foodTargets,
+    strengthSessions: state.strengthSessions,
+    strengthTemplates: state.strengthTemplates,
+  });
 }
 
 function render(): void {
@@ -82,6 +93,7 @@ function render(): void {
   if (state.loadError) main.append(el('p', 'form-error', state.loadError));
   if (state.route === 'today') renderToday(main);
   else if (state.route === 'food') renderFood(main);
+  else if (state.route === 'strength') renderStrength(main);
   else if (state.route === 'workout') renderWorkout(main);
   else if (state.route === 'history') renderHistory(main);
   else renderSettings(main);
@@ -93,6 +105,7 @@ function renderNav(): HTMLElement {
   const items: { route: Route; label: string }[] = [
     { route: 'today', label: 'Today' },
     { route: 'food', label: 'Food' },
+    { route: 'strength', label: 'Strength' },
     { route: 'workout', label: 'Workout' },
     { route: 'history', label: 'History' },
     { route: 'settings', label: 'Settings' },

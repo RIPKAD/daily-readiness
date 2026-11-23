@@ -14,6 +14,7 @@ import { applyPrefill, normalizeApiKey, type IntervalsPrefill } from '../interva
 import { applySuggestion, suggestWeights, type WeightSuggestion } from '../score';
 import { METRICS } from '../scales';
 import { state } from '../state';
+import { exportStrengthCsv } from '../strength';
 import { clearApiKey, persistDatabase, saveApiKey, saveSettings, storageWarning } from '../storage';
 import type { Settings } from '../types';
 import { button, download, el, field, showToast } from '../ui';
@@ -189,6 +190,8 @@ export function renderSettings(main: HTMLElement): void {
       foods: state.foods,
       foodEntries: state.foodEntries,
       foodTargets: state.foodTargets,
+      strengthSessions: state.strengthSessions,
+      strengthTemplates: state.strengthTemplates,
     }), 'application/json');
   }));
   backupRow.append(button('Download check-ins CSV', 'secondary', () => {
@@ -200,8 +203,11 @@ export function renderSettings(main: HTMLElement): void {
   backupRow.append(button('Download food totals CSV', 'secondary', () => {
     download(`food-${todayIso()}.csv`, exportFoodCsv(state.foodEntries, state.foodTargets), 'text/csv');
   }));
+  backupRow.append(button('Download strength CSV', 'secondary', () => {
+    download(`strength-${todayIso()}.csv`, exportStrengthCsv(state.strengthSessions), 'text/csv');
+  }));
   main.append(backupRow);
-  main.append(el('p', 'hint', 'JSON is the full log, the food log, and the score settings. It does not include the API key. Food stays on this phone and is not sent to intervals.icu.'));
+  main.append(el('p', 'hint', 'JSON is the full log, food, strength, and the score settings. It does not include the API key. Food and lifting stay on this phone and are not sent to intervals.icu.'));
 
   const importPreview = el('div', 'preview');
   const file = el('input');
@@ -302,7 +308,7 @@ function showImport(text: string, preview: HTMLElement): void {
     }));
     return;
   }
-  preview.append(el('p', 'lede', `${detected.backup.checkins.length} check-ins, ${detected.backup.workouts.length} workouts, ${detected.backup.benchmarks.length} benchmarks, ${detected.backup.foods.length} foods, ${detected.backup.foodEntries.length} food entries.`));
+  preview.append(el('p', 'lede', `${detected.backup.checkins.length} check-ins, ${detected.backup.workouts.length} workouts, ${detected.backup.benchmarks.length} benchmarks, ${detected.backup.foods.length} foods, ${detected.backup.foodEntries.length} food entries, ${detected.backup.strengthSessions.length} strength sessions.`));
   for (const warning of detected.backup.warnings) preview.append(el('p', 'hint', warning));
   if (detected.backup.settings) preview.append(el('p', 'hint', 'Score settings in the file will replace the ones on this phone.'));
   preview.append(button('Merge backup', 'primary', () => {
@@ -318,6 +324,8 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
   state.foods = merged.foods;
   state.foodEntries = merged.foodEntries;
   state.foodTargets = merged.foodTargets;
+  state.strengthSessions = merged.strengthSessions;
+  state.strengthTemplates = merged.strengthTemplates;
   if (backup.settings) {
     state.settings = backup.settings;
     saveSettings(backup.settings);
@@ -329,6 +337,8 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
     foods: state.foods,
     foodEntries: state.foodEntries,
     foodTargets: state.foodTargets,
+    strengthSessions: state.strengthSessions,
+    strengthTemplates: state.strengthTemplates,
   });
   showToast('Backup merged.');
   preview.replaceChildren(el('p', 'lede', 'Backup merged onto this phone.'));

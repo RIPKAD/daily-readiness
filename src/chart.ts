@@ -19,16 +19,16 @@ export function lineChart(
   const yAt = (value: number) => padY + (1 - (value - min) / span) * (height - padY * 2);
 
   if (options.zones) {
-    band(svg, yAt(100), yAt(65), '#e5f2ea');
-    band(svg, yAt(65), yAt(40), '#f8ecd4');
-    band(svg, yAt(40), yAt(0), '#f8e4df');
+    band(svg, yAt(100), yAt(65), '#1a2e24');
+    band(svg, yAt(65), yAt(40), '#2a2418');
+    band(svg, yAt(40), yAt(0), '#2c1c1a');
   }
 
   const path = document.createElementNS(NS, 'path');
   const d = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${xAt(index).toFixed(1)} ${yAt(point.value).toFixed(1)}`).join(' ');
   path.setAttribute('d', d);
   path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', '#1c1914');
+  path.setAttribute('stroke', '#f3f1ec');
   path.setAttribute('stroke-width', '2');
   path.setAttribute('stroke-linejoin', 'round');
   path.setAttribute('stroke-linecap', 'round');
@@ -39,7 +39,7 @@ export function lineChart(
     dot.setAttribute('cx', xAt(index).toFixed(1));
     dot.setAttribute('cy', yAt(point.value).toFixed(1));
     dot.setAttribute('r', points.length > 40 ? '2' : '3');
-    dot.setAttribute('fill', '#1c1914');
+    dot.setAttribute('fill', '#f3f1ec');
     const title = document.createElementNS(NS, 'title');
     title.textContent = `${point.label}: ${point.value}`;
     dot.append(title);
