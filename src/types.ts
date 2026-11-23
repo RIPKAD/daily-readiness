@@ -93,7 +93,7 @@ export type FoodEntry = {
   updatedAt: string;
 };
 
-/** Targets apply to this date only. Null means that macro has no target. */
+/** A manual target for one date. When set, it wins over public/targets.json. */
 export type FoodTarget = {
   date: string;
   kcal: number | null;
@@ -101,6 +101,7 @@ export type FoodTarget = {
   carbs: number | null;
   fat: number | null;
   updatedAt: string;
+  override?: boolean;
 };
 
 export type StrengthKind = 'lower' | 'upper';

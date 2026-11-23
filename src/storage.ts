@@ -3,8 +3,8 @@ import { DEFAULT_BASELINE_DAYS, defaultWeights } from './score';
 import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, Settings, StrengthSession, StrengthTemplate, WorkoutLog } from './types';
 
 const DB_NAME = 'daily-readiness';
-const DB_VERSION = 3;
-const STORES = ['checkins', 'workouts', 'benchmarks', 'foods', 'foodEntries', 'foodTargets', 'strengthSessions', 'strengthTemplates'] as const;
+const DB_VERSION = 4;
+const STORES = ['checkins', 'workouts', 'benchmarks', 'foods', 'foodEntries', 'foodTargets', 'strengthSessions', 'strengthTemplates', 'hiddenFoodIds'] as const;
 const BACKUP_KEY = 'dr.backup.v1';
 const SETTINGS_KEY = 'dr.settings.v1';
 const API_KEY = 'dr.intervalsApiKey';
@@ -18,6 +18,7 @@ export type Database = {
   foodTargets: FoodTarget[];
   strengthSessions: StrengthSession[];
   strengthTemplates: StrengthTemplate[];
+  hiddenFoodIds: string[];
 };
 
 let memory: Database = emptyMemory();
@@ -97,6 +98,7 @@ export async function persistDatabase(data: {
   foodTargets?: FoodTarget[];
   strengthSessions?: StrengthSession[];
   strengthTemplates?: StrengthTemplate[];
+  hiddenFoodIds?: string[];
 }): Promise<void> {
   const next: Database = {
     checkins: data.checkins,
@@ -107,6 +109,7 @@ export async function persistDatabase(data: {
     foodTargets: data.foodTargets ?? memory.foodTargets,
     strengthSessions: data.strengthSessions ?? memory.strengthSessions,
     strengthTemplates: data.strengthTemplates ?? memory.strengthTemplates,
+    hiddenFoodIds: data.hiddenFoodIds ?? memory.hiddenFoodIds,
   };
   memory = next;
   writeBackup(next);
@@ -123,7 +126,17 @@ function remember(data: Database): Database {
 }
 
 function emptyMemory(): Database {
-  return { checkins: [], workouts: [], benchmarks: [], foods: [], foodEntries: [], foodTargets: [], strengthSessions: [], strengthTemplates: [] };
+  return { checkins: [], workouts: [], benchmarks: [], foods: [], foodEntries: [], foodTargets: [], strengthSessions: [], strengthTemplates: [], hiddenFoodIds: [] };
+}
+
+function stringIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids = raw.map((item) => {
+    if (typeof item === 'string') return item.trim();
+    if (item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string') return (item as { id: string }).id.trim();
+    return '';
+  }).filter(Boolean);
+  return [...new Set(ids)];
 }
 
 function withFatigue(checkin: CheckIn): CheckIn {
@@ -162,6 +175,7 @@ function readBackup(): Database {
       foodTargets: Array.isArray(parsed.foodTargets) ? parsed.foodTargets : [],
       strengthSessions: Array.isArray(parsed.strengthSessions) ? parsed.strengthSessions : [],
       strengthTemplates: Array.isArray(parsed.strengthTemplates) ? parsed.strengthTemplates : [],
+      hiddenFoodIds: stringIds(parsed.hiddenFoodIds),
     };
   } catch {
     return emptyDb();
@@ -189,6 +203,7 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('foodTargets')) db.createObjectStore('foodTargets', { keyPath: 'date' });
       if (!db.objectStoreNames.contains('strengthSessions')) db.createObjectStore('strengthSessions', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('strengthTemplates')) db.createObjectStore('strengthTemplates', { keyPath: 'kind' });
+      if (!db.objectStoreNames.contains('hiddenFoodIds')) db.createObjectStore('hiddenFoodIds', { keyPath: 'id' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('IndexedDB failed to open'));
@@ -208,6 +223,7 @@ async function readIdb(): Promise<Database> {
       const foodTargets = tx.objectStore('foodTargets').getAll();
       const strengthSessions = tx.objectStore('strengthSessions').getAll();
       const strengthTemplates = tx.objectStore('strengthTemplates').getAll();
+      const hiddenFoodIds = tx.objectStore('hiddenFoodIds').getAll();
       tx.oncomplete = () => resolve({
         checkins: (checkins.result as CheckIn[]).map(withFatigue),
         workouts: workouts.result as WorkoutLog[],
@@ -217,6 +233,7 @@ async function readIdb(): Promise<Database> {
         foodTargets: foodTargets.result as FoodTarget[],
         strengthSessions: strengthSessions.result as StrengthSession[],
         strengthTemplates: strengthTemplates.result as StrengthTemplate[],
+        hiddenFoodIds: stringIds(hiddenFoodIds.result),
       });
       tx.onerror = () => reject(tx.error);
     });
@@ -239,6 +256,7 @@ async function writeIdb(data: Database): Promise<void> {
       for (const row of data.foodTargets) tx.objectStore('foodTargets').put(row);
       for (const row of data.strengthSessions) tx.objectStore('strengthSessions').put(row);
       for (const row of data.strengthTemplates) tx.objectStore('strengthTemplates').put(row);
+      for (const id of data.hiddenFoodIds) tx.objectStore('hiddenFoodIds').put({ id });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

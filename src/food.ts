@@ -79,7 +79,9 @@ export function parseRepoFoods(raw: unknown): FoodCatalogItem[] {
  * A food the user edited, and any custom food, keep the local copy.
  * An unedited repo food that left the file is dropped. Hidden stays with the row.
  */
-export function mergeFoods(local: Food[], repo: FoodCatalogItem[], now: string): Food[] {
+export function mergeFoods(local: Food[], repo: FoodCatalogItem[], now: string, hiddenIds?: readonly string[]): Food[] {
+  const forced = hiddenIds ? new Set(hiddenIds) : null;
+  const hidden = (id: string, existing?: Food): boolean => forced ? forced.has(id) : existing?.hidden === true;
   const byId = new Map(local.map((food) => [food.id, food]));
   const seen = new Set<string>();
   const next: Food[] = [];
@@ -88,19 +90,23 @@ export function mergeFoods(local: Food[], repo: FoodCatalogItem[], now: string):
     seen.add(item.id);
     const existing = byId.get(item.id);
     if (!existing) {
-      next.push(repoFood(item, now));
+      const created = repoFood(item, now);
+      created.hidden = hidden(item.id);
+      next.push(created);
       continue;
     }
     if (existing.source === 'custom' || existing.edited) {
-      next.push(existing);
+      next.push({ ...existing, hidden: hidden(existing.id, existing) });
       continue;
     }
-    next.push(catalogMatches(existing, item) ? existing : { ...existing, ...item, source: 'repo', edited: false, updatedAt: now });
+    const refreshed = catalogMatches(existing, item) ? { ...existing } : { ...existing, ...item, source: 'repo' as const, edited: false, updatedAt: now };
+    refreshed.hidden = hidden(existing.id, existing);
+    next.push(refreshed);
   }
   for (const food of local) {
     if (seen.has(food.id)) continue;
     if (food.source === 'repo' && !food.edited) continue;
-    next.push(food);
+    next.push(forced ? { ...food, hidden: forced.has(food.id) } : food);
   }
   return next;
 }
@@ -236,6 +242,7 @@ export function cleanFoodTarget(raw: unknown): FoodTarget | null {
     carbs: optionalNonNegative(row.carbs),
     fat: optionalNonNegative(row.fat),
     updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : new Date().toISOString(),
+    ...(row.override === true ? { override: true } : {}),
   };
   if (target.kcal == null && target.protein == null && target.carbs == null && target.fat == null) return null;
   return target;
@@ -244,6 +251,96 @@ export function cleanFoodTarget(raw: unknown): FoodTarget | null {
 function optionalNonNegative(value: unknown): number | null {
   if (value == null || value === '') return null;
   return nonNegative(value);
+}
+
+export type PlannedDay = {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  day_type: string;
+  planned_kj: number | null;
+  actual_kj: number | null;
+  revised: boolean;
+  note: string;
+};
+
+export type TargetsFile = {
+  updated: string;
+  days: Record<string, PlannedDay>;
+};
+
+export type ResolvedTarget = {
+  source: 'override' | 'file';
+  kcal: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  plan: PlannedDay | null;
+};
+
+export function parseTargets(raw: unknown): TargetsFile {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('targets.json must be an object.');
+  const row = raw as { updated?: unknown; days?: unknown };
+  const days: Record<string, PlannedDay> = {};
+  if (row.days && typeof row.days === 'object' && !Array.isArray(row.days)) {
+    for (const [date, value] of Object.entries(row.days)) {
+      if (!isIsoDate(date)) continue;
+      const day = plannedDay(value);
+      if (day) days[date] = day;
+    }
+  }
+  return { updated: typeof row.updated === 'string' ? row.updated : '', days };
+}
+
+/** A saved FoodTarget for that date wins. Otherwise the file day is used. */
+export function resolveDayTarget(date: string, file: TargetsFile | null, overrides: FoodTarget[]): ResolvedTarget | null {
+  const local = overrides.find((row) => row.date === date);
+  const plan = file?.days[date] ?? null;
+  const localHas = local != null && [local.kcal, local.protein, local.carbs, local.fat].some((value) => value != null);
+  if (localHas && local) {
+    return { source: 'override', kcal: local.kcal, protein: local.protein, carbs: local.carbs, fat: local.fat, plan };
+  }
+  if (!plan) return null;
+  return { source: 'file', kcal: plan.kcal, protein: plan.protein, carbs: plan.carbs, fat: plan.fat, plan };
+}
+
+export function planLine(plan: PlannedDay): string {
+  const parts: string[] = [];
+  if (plan.day_type) parts.push(plan.day_type);
+  if (plan.actual_kj != null) parts.push(`actual ${plan.actual_kj} kJ`);
+  else if (plan.planned_kj != null) parts.push(`planned ${plan.planned_kj} kJ`);
+  if (plan.revised) parts.push('revised after workout');
+  return parts.join(' · ');
+}
+
+function plannedDay(raw: unknown): PlannedDay | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Partial<PlannedDay>;
+  const kcal = nonNegative(row.kcal);
+  const protein = nonNegative(row.protein);
+  const carbs = nonNegative(row.carbs);
+  const fat = nonNegative(row.fat);
+  if (kcal == null || protein == null || carbs == null || fat == null) return null;
+  return {
+    kcal,
+    protein,
+    carbs,
+    fat,
+    day_type: typeof row.day_type === 'string' ? row.day_type : '',
+    planned_kj: row.planned_kj == null ? null : nonNegative(row.planned_kj),
+    actual_kj: row.actual_kj == null ? null : nonNegative(row.actual_kj),
+    revised: row.revised === true,
+    note: typeof row.note === 'string' ? row.note : '',
+  };
+}
+
+export async function fetchTargets(href = window.location.href): Promise<TargetsFile> {
+  const url = new URL('targets.json', href);
+  url.searchParams.set('t', String(Date.now()));
+  const response = await fetch(url, { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`Targets responded ${response.status}.`);
+  return parseTargets(await response.json());
 }
 
 export async function fetchRepoFoods(href = window.location.href): Promise<FoodCatalogItem[]> {

@@ -18,6 +18,7 @@ export type Backup = {
   foodTargets: FoodTarget[];
   strengthSessions: StrengthSession[];
   strengthTemplates: StrengthTemplate[];
+  hiddenFoodIds: string[];
   warnings: string[];
 };
 
@@ -55,6 +56,7 @@ export function exportBackup(input: {
   foodTargets?: FoodTarget[];
   strengthSessions?: StrengthSession[];
   strengthTemplates?: StrengthTemplate[];
+  hiddenFoodIds?: string[];
 }, now = new Date().toISOString()): string {
   return JSON.stringify({
     kind: 'daily-readiness',
@@ -73,6 +75,7 @@ export function exportBackup(input: {
     foodTargets: input.foodTargets ?? [],
     strengthSessions: input.strengthSessions ?? [],
     strengthTemplates: input.strengthTemplates ?? [],
+    hiddenFoodIds: input.hiddenFoodIds ?? [],
   }, null, 2);
 }
 
@@ -191,6 +194,7 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
   const foodTargets = Array.isArray(record.foodTargets) ? record.foodTargets.flatMap((row) => cleanFoodTarget(row) ?? []) : [];
   const strengthSessions = Array.isArray(record.strengthSessions) ? record.strengthSessions.flatMap((row) => cleanStrengthSession(row) ?? []) : [];
   const strengthTemplates = Array.isArray(record.strengthTemplates) ? record.strengthTemplates.flatMap((row) => cleanStrengthTemplate(row) ?? []) : [];
+  const hiddenFoodIds = Array.isArray(record.hiddenFoodIds) ? record.hiddenFoodIds.filter((id): id is string => typeof id === 'string' && id.trim() !== '').map((id) => id.trim()) : [];
   return {
     ok: true,
     backup: {
@@ -203,6 +207,7 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
       foodTargets,
       strengthSessions,
       strengthTemplates,
+      hiddenFoodIds,
       warnings,
     },
   };
@@ -246,6 +251,7 @@ export function mergeBackup(current: {
   foodTargets?: FoodTarget[];
   strengthSessions?: StrengthSession[];
   strengthTemplates?: StrengthTemplate[];
+  hiddenFoodIds?: string[];
 }, backup: Backup): {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
@@ -255,6 +261,7 @@ export function mergeBackup(current: {
   foodTargets: FoodTarget[];
   strengthSessions: StrengthSession[];
   strengthTemplates: StrengthTemplate[];
+  hiddenFoodIds: string[];
 } {
   const checkins = new Map(current.checkins.map((row) => [row.date, row]));
   for (const row of backup.checkins) checkins.set(row.date, row);
@@ -272,6 +279,7 @@ export function mergeBackup(current: {
   for (const row of backup.strengthSessions) strengthSessions.set(row.id, row);
   const strengthTemplates = new Map((current.strengthTemplates ?? []).map((row) => [row.kind, row]));
   for (const row of backup.strengthTemplates) strengthTemplates.set(row.kind, row);
+  const hiddenFoodIds = new Set([...(current.hiddenFoodIds ?? []), ...backup.hiddenFoodIds]);
   return {
     checkins: [...checkins.values()].sort((a, b) => a.date.localeCompare(b.date)),
     workouts: [...workouts.values()].sort((a, b) => a.date.localeCompare(b.date)),
@@ -281,6 +289,7 @@ export function mergeBackup(current: {
     foodTargets: [...foodTargets.values()].sort((a, b) => a.date.localeCompare(b.date)),
     strengthSessions: [...strengthSessions.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
     strengthTemplates: [...strengthTemplates.values()].sort((a, b) => a.kind.localeCompare(b.kind)),
+    hiddenFoodIds: [...hiddenFoodIds].sort(),
   };
 }
 

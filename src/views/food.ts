@@ -1,8 +1,8 @@
 import { isIsoDate, todayIso } from '../dates';
-import { macroShare, scaled, sortFoods, tally } from '../food';
+import { fetchTargets, macroShare, planLine, resolveDayTarget, scaled, sortFoods, tally, type ResolvedTarget } from '../food';
 import { state } from '../state';
 import { persistDatabase } from '../storage';
-import type { Food, FoodEntry, FoodTarget } from '../types';
+import type { Food, FoodEntry } from '../types';
 import { button, el, field, showToast, uid } from '../ui';
 
 let query = '';
@@ -11,9 +11,12 @@ let servingsText = '1';
 let showQuick = false;
 let showAdd = false;
 let showManage = false;
+let editList = false;
 let editingId: string | null = null;
+let watchingTargets = false;
 
 export function renderFood(main: HTMLElement): void {
+  watchTargets();
   const header = el('header', 'page-head');
   header.append(el('p', 'eyebrow', 'What you ate'));
   header.append(el('h1', 'title', 'Food'));
@@ -34,11 +37,15 @@ export function renderFood(main: HTMLElement): void {
     .filter((entry) => entry.date === state.date)
     .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt) || a.id.localeCompare(b.id));
   const total = tally(entries);
-  const target = state.foodTargets.find((row) => row.date === state.date) ?? null;
-  main.append(tallyCard(total, target));
-  main.append(targetFields(target));
+  const resolved = resolveDayTarget(state.date, state.plannedTargets, state.foodTargets);
+  main.append(tallyCard(total, resolved));
+  main.append(targetFields(resolved));
 
   main.append(el('h2', 'section-title', 'Add'));
+  main.append(button(editList ? 'Done editing' : 'Edit list', 'secondary', () => {
+    editList = !editList;
+    document.dispatchEvent(new CustomEvent('dr-render'));
+  }));
   const search = el('input');
   search.type = 'search';
   search.placeholder = 'Search foods';
@@ -88,29 +95,51 @@ export function renderFood(main: HTMLElement): void {
   if (showManage) main.append(manageList());
 }
 
-function tallyCard(total: ReturnType<typeof tally>, target: FoodTarget | null): HTMLElement {
+function tallyCard(total: ReturnType<typeof tally>, target: ResolvedTarget | null): HTMLElement {
   const card = el('section', 'tally');
-  card.append(stat('kcal', total.kcal, target?.kcal ?? null, 0));
-  card.append(stat('protein', total.protein, target?.protein ?? null, 1));
-  card.append(stat('carbs', total.carbs, target?.carbs ?? null, 1));
-  card.append(stat('fat', total.fat, target?.fat ?? null, 1));
+  if (!target) {
+    const empty = el('p', 'lede');
+    empty.style.gridColumn = '1 / -1';
+    empty.textContent = 'No target yet';
+    card.append(empty);
+  } else {
+    card.append(stat('kcal', total.kcal, target.kcal, 0, ''));
+    card.append(stat('protein', total.protein, target.protein, 1, 'g'));
+    card.append(stat('carbs', total.carbs, target.carbs, 1, 'g'));
+    card.append(stat('fat', total.fat, target.fat, 1, 'g'));
+  }
   const share = macroShare(total);
   const note = el('p', 'macro-note');
   note.style.gridColumn = '1 / -1';
   note.textContent = share
     ? `P ${Math.round(share.protein)}% · C ${Math.round(share.carbs)}% · F ${Math.round(share.fat)}% of macro kcal (4 / 4 / 9).`
     : 'Macro split shows once protein, carbs, or fat is logged.';
+  if (target?.plan) {
+    const meta = el('p', 'hint');
+    meta.style.gridColumn = '1 / -1';
+    meta.textContent = planLine(target.plan);
+    card.append(meta);
+    if (target.plan.note) {
+      const noteLine = el('p', 'hint');
+      noteLine.style.gridColumn = '1 / -1';
+      noteLine.textContent = target.plan.note;
+      card.append(noteLine);
+    }
+  }
   card.append(note);
   return card;
 }
 
-function stat(label: string, value: number, goal: number | null, digits: number): HTMLElement {
-  const node = el('div');
+function stat(label: string, value: number, goal: number | null, digits: number, unit: string): HTMLElement {
+  const over = goal != null && goal > 0 && value > goal;
+  const node = el('div', over ? 'over' : '');
   node.append(el('span', '', label));
   node.append(el('strong', '', formatAmount(value, digits)));
   if (goal != null && goal > 0) {
+    node.append(el('span', '', `/ ${formatAmount(goal, digits)}${unit}`));
     const left = goal - value;
-    node.append(el('span', '', left >= 0 ? `${formatAmount(left, digits)} left` : `${formatAmount(-left, digits)} over`));
+    const suffix = unit ? ` ${unit}` : '';
+    node.append(el('span', '', left >= 0 ? `${formatAmount(left, digits)}${suffix} left` : `${formatAmount(-left, digits)}${suffix} over`));
     const track = el('span', 'macro-track');
     const fill = el('i');
     fill.style.width = `${Math.min(100, (value / goal) * 100)}%`;
@@ -120,14 +149,26 @@ function stat(label: string, value: number, goal: number | null, digits: number)
   return node;
 }
 
-function targetFields(target: FoodTarget | null): HTMLElement {
+function targetFields(resolved: ResolvedTarget | null): HTMLElement {
   const wrap = el('div');
-  wrap.append(el('p', 'hint', 'Target for this day only. Leave a box blank for no target. Nothing carries to tomorrow.'));
+  const manual = state.foodTargets.find((row) => row.date === state.date);
+  const shown = manual ?? resolved;
+  wrap.append(el('p', 'hint', resolved?.source === 'override'
+    ? 'This day’s numbers are your override. They win over the shared file.'
+    : resolved
+      ? 'From the shared target file. Change a number to override this day only.'
+      : 'No target yet. Type one for this day if you want a bar.'));
+  if (resolved?.source === 'override' && resolved.plan) {
+    wrap.append(button('Use the file target', 'text-button', () => {
+      state.foodTargets = state.foodTargets.filter((row) => row.date !== state.date);
+      void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+    }));
+  }
   const grid = el('div', 'target-grid');
-  grid.append(targetInput('kcal', target?.kcal ?? null, 1));
-  grid.append(targetInput('P', target?.protein ?? null, 0.1));
-  grid.append(targetInput('C', target?.carbs ?? null, 0.1));
-  grid.append(targetInput('F', target?.fat ?? null, 0.1));
+  grid.append(targetInput('kcal', shown?.kcal ?? null, 1));
+  grid.append(targetInput('P', shown?.protein ?? null, 0.1));
+  grid.append(targetInput('C', shown?.carbs ?? null, 0.1));
+  grid.append(targetInput('F', shown?.fat ?? null, 0.1));
   wrap.append(grid);
   return wrap;
 }
@@ -159,7 +200,7 @@ function targetInput(label: string, value: number | null, step: number): HTMLEle
     const now = new Date().toISOString();
     state.foodTargets = state.foodTargets.filter((row) => row.date !== state.date);
     if (kcal != null || protein != null || carbs != null || fat != null) {
-      state.foodTargets.push({ date: state.date, kcal, protein, carbs, fat, updatedAt: now });
+      state.foodTargets.push({ date: state.date, kcal, protein, carbs, fat, updatedAt: now, override: true });
     }
     await save();
     document.dispatchEvent(new CustomEvent('dr-render'));
@@ -177,7 +218,18 @@ function foodChoice(food: Food): HTMLElement {
   });
   const per = `${food.serving} · ${formatAmount(food.kcal, 0)} kcal · P ${formatAmount(food.protein, 1)} C ${formatAmount(food.carbs, 1)} F ${formatAmount(food.fat, 1)}`;
   wrap.append(hit, el('p', 'hint', per));
-  if (!open) return wrap;
+  if (editList) {
+    wrap.append(button(food.source === 'custom' ? 'Delete' : 'Hide', 'text-button danger', () => {
+      if (food.source === 'custom') removeCustom(food);
+      else hideFood(food);
+    }));
+  } else {
+    attachRemoveGesture(wrap, () => {
+      if (food.source === 'custom') removeCustom(food);
+      else hideFood(food);
+    });
+  }
+  if (!open || editList) return wrap;
   const row = el('div', 'food-open');
   const servings = el('input');
   servings.type = 'number';
@@ -378,20 +430,15 @@ function manageList(): HTMLElement {
     if (food.source === 'custom') {
       actions.append(button('Delete', 'text-button danger', () => {
         if (!window.confirm(`Delete ${food.name} from this phone? Logged days keep what they already have.`)) return;
-        state.foods = state.foods.filter((item) => item.id !== food.id);
-        void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+        removeCustom(food);
       }));
-    } else if (food.hidden) {
+    } else if (food.hidden || state.hiddenFoodIds.includes(food.id)) {
       actions.append(button('Show again', 'text-button', () => {
-        food.hidden = false;
-        food.updatedAt = new Date().toISOString();
-        void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+        unhideFood(food.id);
       }));
     } else {
       actions.append(button('Hide', 'text-button', () => {
-        food.hidden = true;
-        food.updatedAt = new Date().toISOString();
-        void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+        hideFood(food);
       }));
     }
     row.append(actions);
@@ -427,6 +474,97 @@ async function addEntry(food: Food, servings: number): Promise<void> {
   document.dispatchEvent(new CustomEvent('dr-render'));
 }
 
+function hideFood(food: Food): void {
+  if (!state.hiddenFoodIds.includes(food.id)) state.hiddenFoodIds.push(food.id);
+  const index = state.foods.findIndex((item) => item.id === food.id);
+  if (index >= 0) state.foods[index] = { ...state.foods[index], hidden: true };
+  void save().then(() => {
+    showToast(`${food.name} hidden.`, () => unhideFood(food.id));
+    document.dispatchEvent(new CustomEvent('dr-render'));
+  });
+}
+
+function unhideFood(id: string): void {
+  state.hiddenFoodIds = state.hiddenFoodIds.filter((item) => item !== id);
+  const index = state.foods.findIndex((item) => item.id === id);
+  if (index >= 0) state.foods[index] = { ...state.foods[index], hidden: false };
+  void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+}
+
+function removeCustom(food: Food): void {
+  const copy = { ...food };
+  state.foods = state.foods.filter((item) => item.id !== food.id);
+  state.hiddenFoodIds = state.hiddenFoodIds.filter((id) => id !== food.id);
+  void save().then(() => {
+    showToast(`${food.name} deleted.`, () => {
+      state.foods.push(copy);
+      void save().then(() => document.dispatchEvent(new CustomEvent('dr-render')));
+    });
+    document.dispatchEvent(new CustomEvent('dr-render'));
+  });
+}
+
+function attachRemoveGesture(node: HTMLElement, onRemove: () => void): void {
+  let startX = 0;
+  let startY = 0;
+  let timer = 0;
+  let fired = false;
+  node.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    startX = event.clientX;
+    startY = event.clientY;
+    fired = false;
+    timer = window.setTimeout(() => {
+      fired = true;
+      onRemove();
+    }, 550);
+  });
+  const clear = () => window.clearTimeout(timer);
+  node.addEventListener('pointerup', (event) => {
+    clear();
+    if (!fired && startX - event.clientX > 72 && Math.abs(event.clientY - startY) < 40) {
+      fired = true;
+      onRemove();
+    }
+  });
+  node.addEventListener('pointercancel', clear);
+  node.addEventListener('pointermove', (event) => {
+    if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) clear();
+  });
+  node.addEventListener('click', (event) => {
+    if (!fired) return;
+    event.preventDefault();
+    event.stopPropagation();
+    fired = false;
+  }, true);
+}
+
+function watchTargets(): void {
+  if (watchingTargets) return;
+  watchingTargets = true;
+  const loadIfFood = () => {
+    const hash = location.hash.replace(/^#/, '');
+    if (hash === 'food' || hash.startsWith('food/')) void loadTargets();
+  };
+  window.addEventListener('hashchange', loadIfFood);
+  window.addEventListener('focus', loadIfFood);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadIfFood();
+  });
+  void loadTargets();
+}
+
+async function loadTargets(): Promise<void> {
+  try {
+    const file = await fetchTargets();
+    const same = JSON.stringify(file) === JSON.stringify(state.plannedTargets);
+    state.plannedTargets = file;
+    if (!same) document.dispatchEvent(new CustomEvent('dr-render'));
+  } catch {
+    if (!state.foodCatalogError) state.foodCatalogError = 'Today’s target file did not load. A number you type here still works.';
+  }
+}
+
 async function save(): Promise<void> {
   await persistDatabase({
     checkins: state.checkins,
@@ -435,6 +573,7 @@ async function save(): Promise<void> {
     foods: state.foods,
     foodEntries: state.foodEntries,
     foodTargets: state.foodTargets,
+    hiddenFoodIds: state.hiddenFoodIds,
   });
 }
 

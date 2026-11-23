@@ -338,6 +338,19 @@ input:focus, select:focus, textarea:focus {
 }
 
 .macro-track i { display: block; height: 100%; background: var(--green); }
+.tally div.over strong, .tally div.over span { color: var(--amber); }
+.tally div.over .macro-track i { background: #c4a36a; }
+.toast:not([hidden]) { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toast-undo {
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  min-height: 44px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  width: auto;
+}
 
 .target-grid {
   display: grid;

@@ -1,4 +1,5 @@
 import { todayIso } from './dates';
+import type { TargetsFile } from './food';
 import { defaultSettings } from './storage';
 import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, Settings, StrengthSession, StrengthTemplate, WorkoutLog } from './types';
 
@@ -15,6 +16,8 @@ export type State = {
   foodTargets: FoodTarget[];
   strengthSessions: StrengthSession[];
   strengthTemplates: StrengthTemplate[];
+  hiddenFoodIds: string[];
+  plannedTargets: TargetsFile | null;
   settings: Settings;
   apiKey: string;
   preview: boolean;
@@ -34,6 +37,8 @@ export const state: State = {
   foodTargets: [],
   strengthSessions: [],
   strengthTemplates: [],
+  hiddenFoodIds: [],
+  plannedTargets: null,
   settings: defaultSettings(),
   apiKey: '',
   preview: false,

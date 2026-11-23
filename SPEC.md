@@ -8,7 +8,30 @@ A morning check-in scores resting HR, HRV, and subjective scales against a perso
 
 ## Food
 
-`public/foods.json` is an array of `{ id, name, serving, kcal, protein, carbs, fat }` per serving. The phone updates a shared food when the id matches, unless that food was edited locally. Each day has its own targets. The tally is servings times the per-serving numbers.
+`public/foods.json` is an array of `{ id, name, serving, kcal, protein, carbs, fat }` per serving. The phone updates a shared food when the id matches, unless that food was edited locally. Swipe a common food left, or hold it, to hide it. Hidden ids stay on the phone, so the next foods.json merge does not bring that food back. User-added foods can be deleted. Logged rows keep their own name and macros. Settings has a Hidden foods list to unhide.
+
+`public/targets.json` is fetched with `cache: 'no-cache'` when the Food tab opens and when the app regains focus:
+
+```json
+{
+  "updated": "ISO timestamp",
+  "days": {
+    "YYYY-MM-DD": {
+      "kcal": 2291,
+      "protein": 149,
+      "carbs": 139,
+      "fat": 126,
+      "day_type": "easy",
+      "planned_kj": 406,
+      "actual_kj": null,
+      "revised": false,
+      "note": "short text"
+    }
+  }
+}
+```
+
+The file holds about the last 14 days plus tomorrow. A number saved on the phone for that date wins over the file. If the day is missing, the tab says `No target yet` and the four boxes are a manual target. Bars show logged versus target. Going over uses a muted gold, not red. The line under the bars shows the day type, planned or actual kJ, and `revised after workout` when `revised` is true.
 
 ## Strength
 

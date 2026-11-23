@@ -31,10 +31,18 @@ export function field(label: string, control: HTMLElement, hint?: string): HTMLE
   return wrap;
 }
 
-export function showToast(message: string): void {
+export function showToast(message: string, undo?: () => void): void {
   const node = document.getElementById('toast');
   if (!node) return;
-  node.textContent = message;
+  node.replaceChildren(document.createTextNode(message));
+  if (undo) {
+    const action = button('Undo', 'toast-undo', () => {
+      window.clearTimeout(toastTimer);
+      node.hidden = true;
+      undo();
+    });
+    node.append(action);
+  }
   node.hidden = false;
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => {

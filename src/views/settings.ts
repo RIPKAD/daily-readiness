@@ -179,6 +179,34 @@ export function renderSettings(main: HTMLElement): void {
   suggestBox.append(suggestOut);
   main.append(suggestBox);
 
+  main.append(el('h2', 'section-title', 'Hidden foods'));
+  const hiddenFoods = state.foods.filter((food) => food.hidden || state.hiddenFoodIds.includes(food.id));
+  if (!hiddenFoods.length) main.append(el('p', 'hint', 'No hidden foods. Swipe a common food left, or hold it, to hide it.'));
+  for (const food of hiddenFoods) {
+    const row = el('article', 'log-row');
+    row.append(el('p', 'log-title', food.name));
+    row.append(button('Unhide', 'text-button', () => {
+      state.hiddenFoodIds = state.hiddenFoodIds.filter((id) => id !== food.id);
+      const index = state.foods.findIndex((item) => item.id === food.id);
+      if (index >= 0) state.foods[index] = { ...state.foods[index], hidden: false };
+      void persistDatabase({
+        checkins: state.checkins,
+        workouts: state.workouts,
+        benchmarks: state.benchmarks,
+        foods: state.foods,
+        foodEntries: state.foodEntries,
+        foodTargets: state.foodTargets,
+        strengthSessions: state.strengthSessions,
+        strengthTemplates: state.strengthTemplates,
+        hiddenFoodIds: state.hiddenFoodIds,
+      }).then(() => {
+        showToast(`${food.name} is back in the list.`);
+        document.dispatchEvent(new CustomEvent('dr-render'));
+      });
+    }));
+    main.append(row);
+  }
+
   main.append(el('h2', 'section-title', 'Backup'));
   const backupRow = el('div', 'row wrap');
   backupRow.append(button('Download JSON', 'secondary', () => {
@@ -192,6 +220,7 @@ export function renderSettings(main: HTMLElement): void {
       foodTargets: state.foodTargets,
       strengthSessions: state.strengthSessions,
       strengthTemplates: state.strengthTemplates,
+      hiddenFoodIds: state.hiddenFoodIds,
     }), 'application/json');
   }));
   backupRow.append(button('Download check-ins CSV', 'secondary', () => {
@@ -326,6 +355,7 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
   state.foodTargets = merged.foodTargets;
   state.strengthSessions = merged.strengthSessions;
   state.strengthTemplates = merged.strengthTemplates;
+  state.hiddenFoodIds = merged.hiddenFoodIds;
   if (backup.settings) {
     state.settings = backup.settings;
     saveSettings(backup.settings);
@@ -339,6 +369,7 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
     foodTargets: state.foodTargets,
     strengthSessions: state.strengthSessions,
     strengthTemplates: state.strengthTemplates,
+    hiddenFoodIds: state.hiddenFoodIds,
   });
   showToast('Backup merged.');
   preview.replaceChildren(el('p', 'lede', 'Backup merged onto this phone.'));

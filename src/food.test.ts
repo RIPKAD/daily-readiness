@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import catalog from '../public/foods.json';
 import { detectImport, exportBackup, exportFoodCsv } from './exchange';
-import { macroShare, mergeFoods, parseRepoFoods, scaled, sortFoods, tally, usageRank } from './food';
+import { macroShare, mergeFoods, parseRepoFoods, parseTargets, resolveDayTarget, scaled, sortFoods, tally, usageRank } from './food';
 import { defaultSettings } from './storage';
 import type { Food, FoodCatalogItem, FoodEntry, FoodTarget } from './types';
 
@@ -155,6 +155,19 @@ describe('food catalog merge', () => {
     }
   });
 
+  it('keeps a hidden id hidden across a foods.json merge, and shows it again after unhide', () => {
+    const local = [stored(banana, { useCount: 2 })];
+    const updated = { ...banana, kcal: 110, name: 'Banana, medium' };
+    const hidden = mergeFoods(local, [updated, egg], now, ['banana-medium']);
+    const bananaRow = hidden.find((food) => food.id === 'banana-medium');
+    expect(bananaRow).toMatchObject({ hidden: true, kcal: 110, useCount: 2 });
+    expect(hidden.find((food) => food.id === 'egg-large')?.hidden).toBe(false);
+    const shown = mergeFoods(hidden, [updated, egg], now, []);
+    expect(shown.find((food) => food.id === 'banana-medium')?.hidden).toBe(false);
+    const logged = entry({ foodId: 'banana-medium', servings: 1, kcal: 105, protein: 1.3, carbs: 27, fat: 0.4 });
+    expect(tally([logged]).kcal).toBe(105);
+  });
+
   it('ranks recently and frequently used foods ahead of unused ones', () => {
     const today = '2026-11-21';
     const recent = stored(banana, { useCount: 1, lastUsedAt: '2026-11-20T08:00:00.000Z' });
@@ -163,6 +176,56 @@ describe('food catalog merge', () => {
     expect(usageRank(often, today)).toBeGreaterThan(usageRank(recent, today));
     expect(usageRank(recent, today)).toBeGreaterThan(usageRank(unused, today));
     expect(sortFoods([unused, recent, often], today).map((food) => food.id)).toEqual(['egg-large', 'banana-medium', 'apple']);
+  });
+});
+
+describe('daily targets', () => {
+  const file = parseTargets({
+    updated: '2026-11-23T01:00:00.000Z',
+    days: {
+      '2026-11-23': {
+        kcal: 2291,
+        protein: 149,
+        carbs: 139,
+        fat: 126,
+        day_type: 'easy',
+        planned_kj: 406,
+        actual_kj: null,
+        revised: false,
+        note: 'easy day',
+      },
+      '2026-11-24': {
+        kcal: 2800,
+        protein: 160,
+        carbs: 300,
+        fat: 90,
+        day_type: 'hard',
+        planned_kj: 800,
+        actual_kj: 900,
+        revised: true,
+        note: '',
+      },
+    },
+  });
+
+  it('uses the file day, and a saved override wins', () => {
+    expect(parseTargets({ updated: '2026-11-23T00:00:00.000Z', days: {} }).days).toEqual({});
+    const fromFile = resolveDayTarget('2026-11-23', file, []);
+    expect(fromFile).toMatchObject({ source: 'file', kcal: 2291, protein: 149, carbs: 139, fat: 126 });
+    expect(fromFile?.plan?.planned_kj).toBe(406);
+    expect(resolveDayTarget('2026-11-01', file, [])).toBeNull();
+    const override = resolveDayTarget('2026-11-23', file, [{
+      date: '2026-11-23',
+      kcal: 2000,
+      protein: 140,
+      carbs: 150,
+      fat: 70,
+      updatedAt: now,
+      override: true,
+    }]);
+    expect(override).toMatchObject({ source: 'override', kcal: 2000, protein: 140 });
+    expect(override?.plan?.day_type).toBe('easy');
+    expect(resolveDayTarget('2026-11-24', file, [])?.plan?.revised).toBe(true);
   });
 });
 

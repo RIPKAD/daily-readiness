@@ -29,11 +29,15 @@ export async function boot(): Promise<void> {
     state.foodTargets = data.foodTargets;
     state.strengthSessions = data.strengthSessions;
     state.strengthTemplates = templatesOrSeed(data.strengthTemplates);
+    state.hiddenFoodIds = [...new Set([
+      ...data.hiddenFoodIds,
+      ...data.foods.filter((food) => food.hidden).map((food) => food.id),
+    ])];
     state.settings = loadSettings();
     state.apiKey = loadApiKey();
     try {
       const repo = await fetchRepoFoods();
-      const merged = mergeFoods(state.foods, repo, new Date().toISOString());
+      const merged = mergeFoods(state.foods, repo, new Date().toISOString(), state.hiddenFoodIds);
       if (!sameFoodList(state.foods, merged)) {
         state.foods = merged;
         await persistAll();
@@ -69,6 +73,7 @@ function persistAll(): Promise<void> {
     foodTargets: state.foodTargets,
     strengthSessions: state.strengthSessions,
     strengthTemplates: state.strengthTemplates,
+    hiddenFoodIds: state.hiddenFoodIds,
   });
 }
 
@@ -80,7 +85,7 @@ function render(): void {
   const main = el('main');
   main.id = 'main';
   frame.append(main);
-  const toast = el('p', 'toast');
+  const toast = el('div', 'toast');
   toast.id = 'toast';
   toast.hidden = true;
   toast.setAttribute('role', 'status');
