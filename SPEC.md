@@ -51,3 +51,24 @@ RPE is optional, 1–10. Duration defaults to 45 minutes. Estimated kcal is `dur
 History shows `Lift: Lower` and `Lift: Upper` on that date.
 
 The strength CSV is one row per set: `date, session_type, exercise, set_number, warmup, weight_lb, reps, completed, rpe, duration_min, est_kcal`.
+
+## GitHub sync
+
+The phone is the primary store. Settings → GitHub Sync can push `backup.json` on `main` of a private repo (default `RIPKAD/daily-readiness-data`) with a fine-grained token. The token stays in local storage and is never part of `backup.json` or a downloaded export. Auto-sync waits about 2.5 seconds after a change. A missing file is created. An update sends the current `sha`. A 409 refreshes the `sha` and retries once. Offline or a failed push keeps the local log and retries when the device is online.
+
+```json
+{
+  "schemaVersion": 1,
+  "updatedAt": "ISO timestamp",
+  "settings": { "baselineDays": 42, "weights": {}, "weeklyKjTarget": null },
+  "checkins": [],
+  "workouts": [],
+  "benchmarks": [],
+  "foods": [],
+  "foodEntries": [],
+  "foodTargets": [],
+  "strengthSessions": [],
+  "strengthTemplates": [],
+  "hiddenFoodIds": []
+}
+```

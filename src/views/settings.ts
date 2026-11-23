@@ -13,6 +13,18 @@ import { fetchAthleteName, fetchWellnessRange, IntervalsError } from '../interva
 import { applyPrefill, normalizeApiKey, type IntervalsPrefill } from '../intervals-map';
 import { applySuggestion, suggestWeights, type WeightSuggestion } from '../score';
 import { METRICS } from '../scales';
+import {
+  clearGithubToken,
+  DEFAULT_GITHUB_REPO,
+  getSyncStatus,
+  loadAutoSync,
+  loadGithubRepo,
+  loadGithubToken,
+  restoreFromGithub,
+  saveGithubSettings,
+  scheduleGithubSync,
+  syncNow,
+} from '../github-sync';
 import { state } from '../state';
 import { exportStrengthCsv } from '../strength';
 import { clearApiKey, persistDatabase, saveApiKey, saveSettings, storageWarning } from '../storage';
@@ -62,6 +74,7 @@ export function renderSettings(main: HTMLElement): void {
   }
   main.append(field('API key', keyInput), keyRow, keyStatus);
   main.append(el('p', 'hint', 'Browser calls to https://intervals.icu/api/v1/ are allowed. A check from this environment received Access-Control-Allow-Origin for the page’s origin, plus GET and PUT with an Authorization header. Subjective scores are still kept on this phone because the scales do not match.'));
+  main.append(githubSyncSection());
 
   const importBox = el('div', 'panel');
   const importStatus = el('p', 'hint', 'Fetch about 120 days. Empty heart-rate, HRV, and weight fields get filled. Numbers you already typed stay.');
@@ -156,6 +169,7 @@ export function renderSettings(main: HTMLElement): void {
     }
     state.settings = next;
     saveSettings(next);
+    scheduleGithubSync();
     scoreError.textContent = '';
     showToast('Score settings saved on this phone.');
   }));
@@ -172,6 +186,7 @@ export function renderSettings(main: HTMLElement): void {
       if (!base) return;
       state.settings = applySuggestion(base, suggestion);
       saveSettings(state.settings);
+      scheduleGithubSync();
       document.dispatchEvent(new CustomEvent('dr-render'));
       showToast('Suggested weights are saved. You can still edit them.');
     });
@@ -359,6 +374,7 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
   if (backup.settings) {
     state.settings = backup.settings;
     saveSettings(backup.settings);
+    scheduleGithubSync();
   }
   await persistDatabase({
     checkins: state.checkins,
@@ -412,6 +428,99 @@ function readSettings(baseline: HTMLInputElement, target: HTMLInputElement, weig
     next.weights[metric.key] = value;
   }
   return next;
+}
+
+function githubSyncSection(): HTMLElement {
+  const box = el('section', 'panel');
+  box.append(el('h2', 'section-title', 'GitHub Sync'));
+  box.append(el('p', 'lede', 'A private repo keeps a copy of this phone’s log. The token stays on this device and is never written into backup.json.'));
+  const repo = el('input');
+  repo.type = 'text';
+  repo.autocomplete = 'off';
+  repo.spellcheck = false;
+  repo.placeholder = DEFAULT_GITHUB_REPO;
+  repo.value = loadGithubRepo();
+  repo.setAttribute('aria-label', 'GitHub repository');
+  const token = el('input');
+  token.type = 'password';
+  token.autocomplete = 'off';
+  token.spellcheck = false;
+  token.placeholder = loadGithubToken() ? 'Token saved. Paste a replacement to change it.' : 'Fine-grained token';
+  token.setAttribute('aria-label', 'GitHub token');
+  const auto = el('input');
+  auto.type = 'checkbox';
+  auto.checked = loadAutoSync();
+  const autoRow = el('label', 'check-row');
+  autoRow.append(auto, el('span', '', 'Auto-sync'));
+  const status = el('p', 'hint');
+  status.id = 'github-sync-status';
+  status.textContent = getSyncStatus().message;
+  box.append(field('Repository', repo, 'owner/repo. Default RIPKAD/daily-readiness-data.'));
+  box.append(field('GitHub token', token, 'Contents read and write on that repo. Stored only on this phone.'));
+  box.append(autoRow);
+  const actions = el('div', 'stack tight');
+  actions.append(button('Save sync settings', 'secondary', () => {
+    const error = saveGithubSettings(repo.value, token.value, auto.checked);
+    if (error) {
+      status.textContent = error;
+      return;
+    }
+    token.value = '';
+    token.placeholder = loadGithubToken() ? 'Token saved. Paste a replacement to change it.' : 'Fine-grained token';
+    status.textContent = loadGithubToken() ? 'Saved on this phone. Sync will push backup.json to main.' : 'Saved the repo. Add a token to sync.';
+    showToast('GitHub sync settings saved on this phone.');
+    if (loadGithubToken() && auto.checked) void syncNow();
+  }));
+  actions.append(button('Sync now', 'secondary', () => {
+    void syncNow();
+  }));
+  actions.append(button('Restore from GitHub', 'secondary', () => {
+    if (!window.confirm('Replace the log on this phone with backup.json from GitHub?')) return;
+    void restoreFromGithub().then((result) => {
+      if (!result.ok) {
+        status.textContent = result.message;
+        return;
+      }
+      state.checkins = result.backup.checkins;
+      state.workouts = result.backup.workouts;
+      state.benchmarks = result.backup.benchmarks;
+      state.foods = result.backup.foods;
+      state.foodEntries = result.backup.foodEntries;
+      state.foodTargets = result.backup.foodTargets;
+      state.strengthSessions = result.backup.strengthSessions;
+      state.strengthTemplates = result.backup.strengthTemplates;
+      state.hiddenFoodIds = result.backup.hiddenFoodIds;
+      if (result.backup.settings) {
+        state.settings = result.backup.settings;
+        saveSettings(result.backup.settings);
+      }
+      void persistDatabase({
+        checkins: state.checkins,
+        workouts: state.workouts,
+        benchmarks: state.benchmarks,
+        foods: state.foods,
+        foodEntries: state.foodEntries,
+        foodTargets: state.foodTargets,
+        strengthSessions: state.strengthSessions,
+        strengthTemplates: state.strengthTemplates,
+        hiddenFoodIds: state.hiddenFoodIds,
+      }).then(() => {
+        showToast('Restored from GitHub.');
+        document.dispatchEvent(new CustomEvent('dr-render'));
+      });
+    });
+  }));
+  if (loadGithubToken()) {
+    actions.append(button('Remove token', 'text-button danger', () => {
+      clearGithubToken();
+      token.value = '';
+      token.placeholder = 'Fine-grained token';
+      status.textContent = 'Token removed from this phone. Local log is unchanged.';
+      showToast('GitHub token removed.');
+    }));
+  }
+  box.append(actions, status);
+  return box;
 }
 
 function keyHint(key: string): string {

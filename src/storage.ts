@@ -22,6 +22,11 @@ export type Database = {
 };
 
 let memory: Database = emptyMemory();
+let persistedListener: (() => void) | null = null;
+
+export function setPersistListener(listener: (() => void) | null): void {
+  persistedListener = listener;
+}
 
 let warning: string | null = null;
 
@@ -118,6 +123,7 @@ export async function persistDatabase(data: {
   } catch {
     warning = 'Saved in local storage. The browser database rejected the write, and the copy on this phone is still there.';
   }
+  persistedListener?.();
 }
 
 function remember(data: Database): Database {

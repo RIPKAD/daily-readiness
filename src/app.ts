@@ -2,7 +2,8 @@ import { isIsoDate, todayIso } from './dates';
 import { fetchRepoFoods, mergeFoods, sameFoodList } from './food';
 import { state, type Route } from './state';
 import { templatesOrSeed } from './strength';
-import { loadApiKey, loadDatabase, loadSettings, persistDatabase } from './storage';
+import { scheduleGithubSync, startGithubSync } from './github-sync';
+import { loadApiKey, loadDatabase, loadSettings, persistDatabase, setPersistListener } from './storage';
 import { el } from './ui';
 import { renderFood } from './views/food';
 import { renderHistory } from './views/history';
@@ -14,6 +15,8 @@ import { renderWorkout } from './views/workout';
 const ROUTES: Route[] = ['today', 'food', 'strength', 'workout', 'history', 'settings'];
 
 export async function boot(): Promise<void> {
+  setPersistListener(() => scheduleGithubSync());
+  startGithubSync();
   document.addEventListener('dr-render', () => render());
   window.addEventListener('hashchange', () => {
     readRoute();
