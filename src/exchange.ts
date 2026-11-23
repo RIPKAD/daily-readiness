@@ -3,7 +3,8 @@ import { parseDelimited, parseHrvCsv, type HrvParseOk, type HrvRow } from './hrv
 import { blankCheckIn } from './intervals-map';
 import { DEFAULT_BASELINE_DAYS, defaultWeights } from './score';
 import { SCALE_BY_METRIC, WORKOUT_QUALITY } from './scales';
-import type { Benchmark, CheckIn, MetricKey, Settings, WorkoutLog, WorkoutQuality } from './types';
+import { cleanFood, cleanFoodEntry, cleanFoodTarget } from './food';
+import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, MetricKey, Settings, WorkoutLog, WorkoutQuality } from './types';
 import { METRIC_KEYS } from './types';
 
 export type Backup = {
@@ -11,6 +12,9 @@ export type Backup = {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
   benchmarks: Benchmark[];
+  foods: Food[];
+  foodEntries: FoodEntry[];
+  foodTargets: FoodTarget[];
   warnings: string[];
 };
 
@@ -43,6 +47,9 @@ export function exportBackup(input: {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
   benchmarks: Benchmark[];
+  foods?: Food[];
+  foodEntries?: FoodEntry[];
+  foodTargets?: FoodTarget[];
 }, now = new Date().toISOString()): string {
   return JSON.stringify({
     kind: 'daily-readiness',
@@ -56,7 +63,45 @@ export function exportBackup(input: {
     checkins: input.checkins,
     workouts: input.workouts,
     benchmarks: input.benchmarks,
+    foods: input.foods ?? [],
+    foodEntries: input.foodEntries ?? [],
+    foodTargets: input.foodTargets ?? [],
   }, null, 2);
+}
+
+export function exportFoodCsv(entries: FoodEntry[], targets: FoodTarget[]): string {
+  const lines = ['date,kcal,protein_g,carbs_g,fat_g,target_kcal,target_protein_g,target_carbs_g,target_fat_g'];
+  const dates = new Set<string>([...entries.map((entry) => entry.date), ...targets.map((target) => target.date)]);
+  const byDate = new Map(targets.map((target) => [target.date, target]));
+  for (const date of [...dates].sort()) {
+    const day = entries.filter((entry) => entry.date === date);
+    const total = day.reduce(
+      (sum, entry) => ({
+        kcal: sum.kcal + entry.kcal * entry.servings,
+        protein: sum.protein + entry.protein * entry.servings,
+        carbs: sum.carbs + entry.carbs * entry.servings,
+        fat: sum.fat + entry.fat * entry.servings,
+      }),
+      { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    );
+    const target = byDate.get(date);
+    lines.push([
+      date,
+      cell(roundCsv(total.kcal)),
+      cell(roundCsv(total.protein)),
+      cell(roundCsv(total.carbs)),
+      cell(roundCsv(total.fat)),
+      cell(target?.kcal),
+      cell(target?.protein),
+      cell(target?.carbs),
+      cell(target?.fat),
+    ].join(','));
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function roundCsv(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 export function exportCheckinsCsv(checkins: CheckIn[]): string {
@@ -134,6 +179,9 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
   const checkins = Array.isArray(record.checkins) ? record.checkins.flatMap((row) => cleanCheckin(row) ?? []) : [];
   const workouts = Array.isArray(record.workouts) ? record.workouts.flatMap((row) => cleanWorkout(row) ?? []) : [];
   const benchmarks = Array.isArray(record.benchmarks) ? record.benchmarks.flatMap((row) => cleanBenchmark(row) ?? []) : [];
+  const foods = Array.isArray(record.foods) ? record.foods.flatMap((row) => cleanFood(row) ?? []) : [];
+  const foodEntries = Array.isArray(record.foodEntries) ? record.foodEntries.flatMap((row) => cleanFoodEntry(row) ?? []) : [];
+  const foodTargets = Array.isArray(record.foodTargets) ? record.foodTargets.flatMap((row) => cleanFoodTarget(row) ?? []) : [];
   return {
     ok: true,
     backup: {
@@ -141,6 +189,9 @@ export function parseBackup(text: string): { ok: true; backup: Backup } | { ok: 
       checkins,
       workouts,
       benchmarks,
+      foods,
+      foodEntries,
+      foodTargets,
       warnings,
     },
   };
@@ -175,10 +226,20 @@ export function mergeHrvRows(current: CheckIn[], rows: HrvRow[], now: string): {
   };
 }
 
-export function mergeBackup(current: { checkins: CheckIn[]; workouts: WorkoutLog[]; benchmarks: Benchmark[] }, backup: Backup): {
+export function mergeBackup(current: {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
   benchmarks: Benchmark[];
+  foods?: Food[];
+  foodEntries?: FoodEntry[];
+  foodTargets?: FoodTarget[];
+}, backup: Backup): {
+  checkins: CheckIn[];
+  workouts: WorkoutLog[];
+  benchmarks: Benchmark[];
+  foods: Food[];
+  foodEntries: FoodEntry[];
+  foodTargets: FoodTarget[];
 } {
   const checkins = new Map(current.checkins.map((row) => [row.date, row]));
   for (const row of backup.checkins) checkins.set(row.date, row);
@@ -186,10 +247,19 @@ export function mergeBackup(current: { checkins: CheckIn[]; workouts: WorkoutLog
   for (const row of backup.workouts) workouts.set(row.id, row);
   const benchmarks = new Map(current.benchmarks.map((row) => [row.id, row]));
   for (const row of backup.benchmarks) benchmarks.set(row.id, row);
+  const foods = new Map((current.foods ?? []).map((row) => [row.id, row]));
+  for (const row of backup.foods) foods.set(row.id, row);
+  const foodEntries = new Map((current.foodEntries ?? []).map((row) => [row.id, row]));
+  for (const row of backup.foodEntries) foodEntries.set(row.id, row);
+  const foodTargets = new Map((current.foodTargets ?? []).map((row) => [row.date, row]));
+  for (const row of backup.foodTargets) foodTargets.set(row.date, row);
   return {
     checkins: [...checkins.values()].sort((a, b) => a.date.localeCompare(b.date)),
     workouts: [...workouts.values()].sort((a, b) => a.date.localeCompare(b.date)),
     benchmarks: [...benchmarks.values()].sort((a, b) => a.date.localeCompare(b.date)),
+    foods: [...foods.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    foodEntries: [...foodEntries.values()].sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)),
+    foodTargets: [...foodTargets.values()].sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
 

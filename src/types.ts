@@ -56,6 +56,53 @@ export type WorkoutLog = {
   isMain?: boolean;
 };
 
+/** One row of public/foods.json. Numbers are for a single serving. */
+export type FoodCatalogItem = {
+  id: string;
+  name: string;
+  serving: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+/** A common food on this phone. Repo rows can be hidden or edited locally. */
+export type Food = FoodCatalogItem & {
+  source: 'repo' | 'custom';
+  edited: boolean;
+  hidden: boolean;
+  useCount: number;
+  lastUsedAt: string | null;
+  updatedAt: string;
+};
+
+/** One thing eaten. Macros are per serving; the day's tally multiplies by servings. */
+export type FoodEntry = {
+  id: string;
+  date: string;
+  foodId: string | null;
+  name: string;
+  serving: string;
+  servings: number;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  loggedAt: string;
+  updatedAt: string;
+};
+
+/** Targets apply to this date only. Null means that macro has no target. */
+export type FoodTarget = {
+  date: string;
+  kcal: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  updatedAt: string;
+};
+
 export type Benchmark = {
   id: string;
   date: string;

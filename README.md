@@ -71,7 +71,15 @@ The expected URL is [https://ripkad.github.io/daily-readiness/](https://ripkad.g
 2. In the repo, open Settings → Pages → Build and deployment, and choose **GitHub Actions** (not “Deploy from a branch”).
 3. The workflow in `.github/workflows/pages.yml` runs the tests, builds `dist/`, and deploys it. The site root is the project path `/daily-readiness/`. Built asset paths are relative (`./assets/...`), so the same `dist/` also works if you open it from a local preview.
 
-Hash routes (`#today`, `#workout`, `#history`, `#settings`) avoid needing a server rewrite.
+Hash routes (`#food`, `#today`, `#workout`, `#history`, `#settings`) avoid needing a server rewrite. Opening the site with no hash lands on Food.
+
+## Food
+
+Food is a separate log. It is not sent to intervals.icu.
+
+`public/foods.json` is an array of common foods. Each object has a stable `id`, `name`, `serving` (a description such as `1 cup` or `100 g`), and per-serving `kcal`, `protein`, `carbs`, and `fat`. The app loads that file on startup and updates the copy on the phone when the id matches, unless that food was edited on the phone. Foods added in the app stay on the phone. A shared food can be hidden.
+
+Each day has its own kcal and macro targets. They are not copied to the next day. The tally is the sum of servings times the per-serving numbers. P/C/F percentages use 4, 4, and 9 kcal per gram.
 
 ## Decisions still open
 

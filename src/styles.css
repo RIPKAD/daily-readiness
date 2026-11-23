@@ -304,13 +304,72 @@ input:focus, select:focus, textarea:focus {
 
 .choice-list { display: flex; flex-direction: column; gap: 8px; }
 
+.tally {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tally div {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 6px 10px;
+}
+
+.tally strong {
+  display: block;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.tally span, .macro-note { color: var(--ink-soft); font-size: 12px; }
+
+.macro-track {
+  display: block;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 99px;
+  background: rgba(28, 25, 20, 0.08);
+  overflow: hidden;
+}
+
+.macro-track i { display: block; height: 100%; background: var(--green); }
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.target-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.target-grid input { text-align: center; padding: 8px 4px; min-height: 42px; }
+
+main > input[type="search"] { margin-top: 8px; }
+main > .secondary { width: 100%; margin-top: 12px; }
+
+.food-open { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.food-open input { width: 96px; min-height: 44px; padding: 8px 10px; }
+.food-open .primary { width: auto; flex: 1; }
+
 .nav {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: rgba(244, 239, 228, 0.94);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--line);
@@ -322,8 +381,8 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
   text-decoration: none;
   color: var(--ink-soft);
-  padding: 12px 4px 14px;
-  font-size: 13px;
+  padding: 10px 2px 12px;
+  font-size: 12px;
   font-weight: 500;
 }
 

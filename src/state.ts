@@ -1,8 +1,8 @@
 import { todayIso } from './dates';
 import { defaultSettings } from './storage';
-import type { Benchmark, CheckIn, Settings, WorkoutLog } from './types';
+import type { Benchmark, CheckIn, Food, FoodEntry, FoodTarget, Settings, WorkoutLog } from './types';
 
-export type Route = 'today' | 'workout' | 'history' | 'settings';
+export type Route = 'today' | 'food' | 'workout' | 'history' | 'settings';
 
 export type State = {
   route: Route;
@@ -10,11 +10,15 @@ export type State = {
   checkins: CheckIn[];
   workouts: WorkoutLog[];
   benchmarks: Benchmark[];
+  foods: Food[];
+  foodEntries: FoodEntry[];
+  foodTargets: FoodTarget[];
   settings: Settings;
   apiKey: string;
   preview: boolean;
   ready: boolean;
   loadError: string | null;
+  foodCatalogError: string | null;
 };
 
 export const state: State = {
@@ -23,9 +27,13 @@ export const state: State = {
   checkins: [],
   workouts: [],
   benchmarks: [],
+  foods: [],
+  foodEntries: [],
+  foodTargets: [],
   settings: defaultSettings(),
   apiKey: '',
   preview: false,
   ready: false,
   loadError: null,
+  foodCatalogError: null,
 };

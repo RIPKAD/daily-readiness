@@ -3,6 +3,7 @@ import {
   detectImport,
   exportBackup,
   exportCheckinsCsv,
+  exportFoodCsv,
   exportWorkoutsCsv,
   mergeBackup,
   mergeCheckins,
@@ -185,6 +186,9 @@ export function renderSettings(main: HTMLElement): void {
       checkins: state.checkins,
       workouts: state.workouts,
       benchmarks: state.benchmarks,
+      foods: state.foods,
+      foodEntries: state.foodEntries,
+      foodTargets: state.foodTargets,
     }), 'application/json');
   }));
   backupRow.append(button('Download check-ins CSV', 'secondary', () => {
@@ -193,8 +197,11 @@ export function renderSettings(main: HTMLElement): void {
   backupRow.append(button('Download workouts CSV', 'secondary', () => {
     download(`workouts-${todayIso()}.csv`, exportWorkoutsCsv(state.workouts), 'text/csv');
   }));
+  backupRow.append(button('Download food totals CSV', 'secondary', () => {
+    download(`food-${todayIso()}.csv`, exportFoodCsv(state.foodEntries, state.foodTargets), 'text/csv');
+  }));
   main.append(backupRow);
-  main.append(el('p', 'hint', 'JSON is the full log and the score settings. It does not include the API key.'));
+  main.append(el('p', 'hint', 'JSON is the full log, the food log, and the score settings. It does not include the API key. Food stays on this phone and is not sent to intervals.icu.'));
 
   const importPreview = el('div', 'preview');
   const file = el('input');
@@ -281,14 +288,21 @@ function showImport(text: string, preview: HTMLElement): void {
     preview.append(button('Merge check-ins', 'primary', () => {
       void (async () => {
         state.checkins = mergeCheckins(state.checkins, detected.checkins);
-        await persistDatabase({ checkins: state.checkins, workouts: state.workouts, benchmarks: state.benchmarks });
+        await persistDatabase({
+          checkins: state.checkins,
+          workouts: state.workouts,
+          benchmarks: state.benchmarks,
+          foods: state.foods,
+          foodEntries: state.foodEntries,
+          foodTargets: state.foodTargets,
+        });
         showToast('Check-ins merged.');
         preview.replaceChildren(el('p', 'lede', 'Check-ins merged.'));
       })();
     }));
     return;
   }
-  preview.append(el('p', 'lede', `${detected.backup.checkins.length} check-ins, ${detected.backup.workouts.length} workouts, ${detected.backup.benchmarks.length} benchmarks.`));
+  preview.append(el('p', 'lede', `${detected.backup.checkins.length} check-ins, ${detected.backup.workouts.length} workouts, ${detected.backup.benchmarks.length} benchmarks, ${detected.backup.foods.length} foods, ${detected.backup.foodEntries.length} food entries.`));
   for (const warning of detected.backup.warnings) preview.append(el('p', 'hint', warning));
   if (detected.backup.settings) preview.append(el('p', 'hint', 'Score settings in the file will replace the ones on this phone.'));
   preview.append(button('Merge backup', 'primary', () => {
@@ -301,11 +315,21 @@ async function mergeJson(backup: Backup, preview: HTMLElement): Promise<void> {
   state.checkins = merged.checkins;
   state.workouts = merged.workouts;
   state.benchmarks = merged.benchmarks;
+  state.foods = merged.foods;
+  state.foodEntries = merged.foodEntries;
+  state.foodTargets = merged.foodTargets;
   if (backup.settings) {
     state.settings = backup.settings;
     saveSettings(backup.settings);
   }
-  await persistDatabase({ checkins: state.checkins, workouts: state.workouts, benchmarks: state.benchmarks });
+  await persistDatabase({
+    checkins: state.checkins,
+    workouts: state.workouts,
+    benchmarks: state.benchmarks,
+    foods: state.foods,
+    foodEntries: state.foodEntries,
+    foodTargets: state.foodTargets,
+  });
   showToast('Backup merged.');
   preview.replaceChildren(el('p', 'lede', 'Backup merged onto this phone.'));
 }
