@@ -40,6 +40,22 @@ export function macroShare(total: Macros): { protein: number; carbs: number; fat
   };
 }
 
+/** `2291 / 151` or `149g / 19g`. The second number is what is left, or how far over. */
+export function formatTargetLeft(goal: number, consumed: number, unit: '' | 'g'): string {
+  const digits = unit === 'g' ? 1 : 0;
+  const target = formatFoodAmount(goal, digits);
+  const remain = goal - consumed;
+  const amount = formatFoodAmount(Math.abs(remain), digits);
+  const line = `${target}${unit} / ${amount}${unit}`;
+  return remain < 0 ? `${line} over` : line;
+}
+
+function formatFoodAmount(value: number, digits: number): string {
+  const factor = 10 ** digits;
+  const rounded = Math.round(value * factor) / factor;
+  return digits === 0 ? String(Math.round(rounded)) : String(rounded);
+}
+
 export function remaining(total: Macros, target: FoodTarget | null): Macros {
   return {
     kcal: target?.kcal == null ? Number.NaN : target.kcal - total.kcal,

@@ -317,6 +317,11 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 8px 6px 10px;
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .tally { grid-template-columns: repeat(2, 1fr); }
 }
 
 .tally strong {
@@ -327,6 +332,13 @@ input:focus, select:focus, textarea:focus {
 }
 
 .tally span, .macro-note { color: var(--ink-soft); font-size: 12px; }
+
+.tally-compare {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.35;
+  white-space: normal;
+}
 
 .macro-track {
   display: block;

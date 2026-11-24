@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import catalog from '../public/foods.json';
 import { detectImport, exportBackup, exportFoodCsv } from './exchange';
-import { macroShare, mergeFoods, parseRepoFoods, parseTargets, resolveDayTarget, scaled, sortFoods, tally, usageRank } from './food';
+import { formatTargetLeft, macroShare, mergeFoods, parseRepoFoods, parseTargets, resolveDayTarget, scaled, sortFoods, tally, usageRank } from './food';
 import { defaultSettings } from './storage';
 import type { Food, FoodCatalogItem, FoodEntry, FoodTarget } from './types';
 
@@ -74,6 +74,15 @@ describe('food tally', () => {
     expect(share).not.toBeNull();
     expect(share!.protein + share!.carbs + share!.fat).toBeCloseTo(100, 8);
     expect(share!.protein).toBeCloseTo(((1.3 * 1.5 + 6.3 * 2) * 4 / energy) * 100, 8);
+  });
+
+  it('formats each summary as target / left, with a unit and an over state', () => {
+    expect(formatTargetLeft(2291, 2140, '')).toBe('2291 / 151');
+    expect(formatTargetLeft(149, 130, 'g')).toBe('149g / 19g');
+    expect(formatTargetLeft(139, 93, 'g')).toBe('139g / 46g');
+    expect(formatTargetLeft(126, 98, 'g')).toBe('126g / 28g');
+    expect(formatTargetLeft(149, 160, 'g')).toBe('149g / 11g over');
+    expect(formatTargetLeft(2291, 2400, '')).toBe('2291 / 109 over');
   });
 
   it('has no macro split when every gram is zero', () => {

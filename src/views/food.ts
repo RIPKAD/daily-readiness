@@ -1,5 +1,5 @@
 import { isIsoDate, todayIso } from '../dates';
-import { fetchTargets, macroShare, planLine, resolveDayTarget, scaled, sortFoods, tally, type ResolvedTarget } from '../food';
+import { fetchTargets, formatTargetLeft, macroShare, planLine, resolveDayTarget, scaled, sortFoods, tally, type ResolvedTarget } from '../food';
 import { state } from '../state';
 import { persistDatabase } from '../storage';
 import type { Food, FoodEntry } from '../types';
@@ -136,10 +136,8 @@ function stat(label: string, value: number, goal: number | null, digits: number,
   node.append(el('span', '', label));
   node.append(el('strong', '', formatAmount(value, digits)));
   if (goal != null && goal > 0) {
-    node.append(el('span', '', `/ ${formatAmount(goal, digits)}${unit}`));
-    const left = goal - value;
-    const suffix = unit ? ` ${unit}` : '';
-    node.append(el('span', '', left >= 0 ? `${formatAmount(left, digits)}${suffix} left` : `${formatAmount(-left, digits)}${suffix} over`));
+    const compare = el('span', 'tally-compare', formatTargetLeft(goal, value, unit === 'g' ? 'g' : ''));
+    node.append(compare);
     const track = el('span', 'macro-track');
     const fill = el('i');
     fill.style.width = `${Math.min(100, (value / goal) * 100)}%`;
