@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-24T06:21:38-07:00",
+  "updated": "2026-11-24T11:04:50-07:00",
   "days": {
     "2026-11-21": {
       "kcal": 3472,
@@ -35,15 +35,15 @@
       "note": "Easy day, 250 kcal deficit, revised after 413 kJ ride"
     },
     "2026-11-24": {
-      "kcal": 3043,
+      "kcal": 3034,
       "protein": 149,
-      "carbs": 229,
-      "fat": 170,
+      "carbs": 215,
+      "fat": 175,
       "day_type": "loading",
       "planned_kj": 813,
-      "actual_kj": null,
-      "revised": false,
-      "note": "Loading day, no deficit, 813 kJ planned"
+      "actual_kj": 818,
+      "revised": true,
+      "note": "Loading day, no deficit, revised after 818 kJ ride"
     },
     "2026-11-25": {
       "kcal": 2291,
