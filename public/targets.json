@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-26T19:00:30-07:00",
+  "updated": "2026-11-27T06:15:08-07:00",
   "days": {
     "2026-11-21": {
       "kcal": 3472,
@@ -77,6 +77,17 @@
       "actual_kj": null,
       "revised": false,
       "note": "Easy day, 250 kcal deficit, 406 kJ planned"
+    },
+    "2026-11-28": {
+      "kcal": 4198,
+      "protein": 149,
+      "carbs": 435,
+      "fat": 207,
+      "day_type": "loading",
+      "planned_kj": 1750,
+      "actual_kj": null,
+      "revised": false,
+      "note": "Loading day, no deficit, 1,750 kJ planned"
     }
   }
 }
