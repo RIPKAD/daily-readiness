@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-27T15:01:28-07:00",
+  "updated": "2026-11-27T17:43:30-07:00",
   "days": {
     "2026-11-21": {
       "kcal": 3472,
@@ -68,15 +68,15 @@
       "note": "Loading day, no deficit, Manitou Incline + Barr Trail hike, revised after hike"
     },
     "2026-11-27": {
-      "kcal": 2258,
+      "kcal": 3100,
       "protein": 136,
-      "carbs": 226,
-      "fat": 90,
-      "day_type": "easy",
+      "carbs": 310,
+      "fat": 146,
+      "day_type": "loading",
       "planned_kj": 406,
-      "actual_kj": 405,
+      "actual_kj": 907,
       "revised": true,
-      "note": "Easy day, 250 kcal deficit, revised after 405 kJ ride"
+      "note": "Loading day, no deficit, revised after 907 kJ ride"
     },
     "2026-11-28": {
       "kcal": 4198,
